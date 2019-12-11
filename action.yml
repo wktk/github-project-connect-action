@@ -1,13 +1,14 @@
-name: 'Wait'
-description: 'Wait a designated number of milliseconds'
+name: Sync GitHub Project Issue cards and PR
+description: Move GitHub Project cards associated to an issue, according to the PRs that refer that issue
+author: @wktk
 inputs:
-  milliseconds:  # id of input
-    description: 'number of milliseconds to wait'
+  github_token:
+    description: 'The GITHUB_TOKEN secret'
     required: true
-    default: '1000'
-outputs:
-  time: # output will be available to future steps 
-    description: 'The message to output'
+  config-path:
+    description: 'The path for the configurations'
+    required: true
+    default: '.github/sync-project-cards.yml'
 runs:
   using: 'node12'
   main: 'dist/index.js'
