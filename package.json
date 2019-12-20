@@ -4,9 +4,9 @@
   "description": "Move GitHub Project cards associated to an issue, according to the PRs that refer that issue",
   "main": "index.js",
   "scripts": {
-    "lint": "eslint index.js",
-    "package": "ncc build index.js -o dist",
-    "test": "eslint index.js && jest"
+    "lint": "eslint src/*.ts",
+    "package": "ncc build src/index.ts",
+    "test": "eslint src/*.ts && jest"
   },
   "repository": {
     "type": "git",
@@ -24,11 +24,18 @@
   },
   "homepage": "https://github.com/wktk/sync-github-project-issue-cards-and-pr",
   "dependencies": {
-    "@actions/core": "^1.1.1"
+    "@actions/core": "^1.1.1",
+    "@actions/github": "^2.0.0",
+    "typescript": "^3.7.3"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^2.12.0",
+    "@typescript-eslint/parser": "^2.12.0",
     "@zeit/ncc": "^0.20.5",
     "eslint": "^6.3.0",
-    "jest": "^24.9.0"
+    "eslint-config-prettier": "^6.7.0",
+    "eslint-plugin-prettier": "^3.1.2",
+    "jest": "^24.9.0",
+    "prettier": "^1.19.1"
   }
 }
