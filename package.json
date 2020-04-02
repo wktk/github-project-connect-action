@@ -1,31 +1,26 @@
 {
   "name": "sync-github-project-issue-cards-and-pr",
-  "version": "0.0.1",
-  "description": "Move GitHub Project cards associated to an issue, according to the PRs that refer that issue",
-  "main": "index.js",
+  "version": "1.0.0",
+  "main": "dist/index.js",
   "scripts": {
     "lint": "eslint src/*.ts",
     "package": "ncc build src/index.ts",
-    "test": "eslint src/*.ts && jest"
+    "test": "eslint src/*.ts"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/wktk/sync-github-project-issue-cards-and-pr.git"
+  "repository": "https://github.com/wktk/sync-github-project-issue-cards-and-pr",
+  "bugs": {
+    "url": "https://github.com/wktk/sync-github-project-issue-cards-and-pr/issues"
   },
   "keywords": [
     "GitHub",
     "Actions",
     "JavaScript"
   ],
-  "author": "wktk",
+  "author": "k.wakitani <k.wakitani@gmail.com>",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/wktk/sync-github-project-issue-cards-and-pr/issues"
-  },
-  "homepage": "https://github.com/wktk/sync-github-project-issue-cards-and-pr",
   "dependencies": {
-    "@actions/core": "^1.1.1",
-    "@actions/github": "^2.0.0",
+    "@actions/core": "^1.2.2",
+    "@actions/github": "^2.1.1",
     "typescript": "^3.7.3"
   },
   "devDependencies": {
