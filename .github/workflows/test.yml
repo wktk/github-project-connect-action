@@ -14,3 +14,5 @@ jobs:
       - name: Install packages
         run: yarn --frozen-lockfile --ignore-optional
       - run: yarn test
+      - name: Make sure that the package is built
+        run: yarn package && git diff --exit-code
