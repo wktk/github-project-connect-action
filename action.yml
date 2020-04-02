@@ -2,13 +2,15 @@ name: Sync GitHub Project Issue cards and PR
 description: Move GitHub Project cards associated to an issue, according to the PRs that refer that issue
 author: @wktk
 inputs:
-  github_token:
-    description: 'The GITHUB_TOKEN secret'
+  github-token:
+    description: "GitHub API token with repo scope.  GITHUB_TOKEN cannot be used as it doesn't have access to the Projects API."
     required: true
-  config-path:
-    description: 'The path for the configurations'
+  project-id:
+    description: 'Numeric ID of the target GitHub Project'
     required: true
-    default: '.github/sync-project-cards.yml'
+  project-id:
+    description: 'Numeric ID of the destination column'
+    required: true
 runs:
   using: 'node12'
   main: 'dist/index.js'
