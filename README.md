@@ -58,7 +58,7 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.action == 'review_requested'
         uses: wktk/github-project-connect-action@master
         with:
-          github-token: ${{ secrets.SYNC_REPO_TOKEN }}
+          github-token: ${{ secrets.REPO_TOKEN }}
           project-id: 4226438
           to-column: 8564172
 
@@ -66,7 +66,7 @@ jobs:
         if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved'
         uses: wktk/github-project-connect-action@master
         with:
-          github-token: ${{ secrets.SYNC_REPO_TOKEN }}
+          github-token: ${{ secrets.REPO_TOKEN }}
           project-id: 4226438
           to-column: 8564173
 
@@ -74,7 +74,7 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.merged_at != ''
         uses: wktk/github-project-connect-action@master
         with:
-          github-token: ${{ secrets.SYNC_REPO_TOKEN }}
+          github-token: ${{ secrets.REPO_TOKEN }}
           project-id: 4226438
           to-column: 8564174
 ```
