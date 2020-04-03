@@ -4,6 +4,42 @@ Connect Pull Request statuses to Issues on GitHub Project boards.
 
 ## Configuration
 
+### Inputs
+
+- `github-token`: GitHub API token with `repo` access.
+  - :warning: `secrets.GITHUB_TOKEN` can't be used as this actions uses an preview API.  Obtain it from [Personal access tokens].
+- `project-id`: Numeric ID of the target GitHub Project.
+  - :warning: It doesn't appear in URL.  Find it from the API (see below).
+- `to-column`: Numeric ID of the destiation column.
+  - :warning: It doesn't appear in URL.  Find it from the API (see below).
+
+```sh
+# Find a Project Id (User)
+curl --silent \
+  -H "accept: application/vnd.github.inertia-preview+json" \
+  -H "authorization: token <your_github_token>" \
+  https://api.github.com/users/<user_name>/projects \
+| jq ".[] | { id: .id, name: .name, html_url: .html_url }"
+
+# Find a Project ID (Organization)
+curl --silent \
+  -H "accept: application/vnd.github.inertia-preview+json" \
+  -H "authorization: token <your_github_token>" \
+  https://api.github.com/orgs/<org_user_name>/projects \
+| jq ".[] | { id: .id, name: .name, html_url: .html_url }"
+
+# Find a column ID
+curl --silent \
+  -H "accept: application/vnd.github.inertia-preview+json" \
+  -H "authorization: token <your_github_token>" \
+  https://api.github.com/projects/<project_id>/columns \
+| jq ".[] | { id: .id, name: .name }"
+```
+
+[Personal access tokens]: https://github.com/settings/tokens
+
+### Example
+
 ```yaml
 name: github-project-connect-action
 on:
