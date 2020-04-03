@@ -55,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: When pull_request review_requested, move the connected issue to the Reviewing column
-        if: github.event_name == "pull_request" && github.event.action == "review_requested"
+        if: github.event_name == 'pull_request' && github.event.action == 'review_requested'
         uses: wktk/github-project-connect-action@master
         with:
           github-token: ${{ secrets.SYNC_REPO_TOKEN }}
@@ -63,7 +63,7 @@ jobs:
           to-column: 8564172
 
       - name: When pull_request_review approved, move the connected issue to the Ready column
-        if: github.event_name == "pull_request_review" && github.event.review.state == "approved"
+        if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved'
         uses: wktk/github-project-connect-action@master
         with:
           github-token: ${{ secrets.SYNC_REPO_TOKEN }}
@@ -71,7 +71,7 @@ jobs:
           to-column: 8564173
 
       - name: When pull_request merged, move the connected issue to the Done column
-        if: github.event_name == "pull_request" && github.event.pull_request.merged_at != ""
+        if: github.event_name == 'pull_request' && github.event.pull_request.merged_at != ''
         uses: wktk/github-project-connect-action@master
         with:
           github-token: ${{ secrets.SYNC_REPO_TOKEN }}
