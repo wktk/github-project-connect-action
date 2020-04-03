@@ -46,7 +46,7 @@ curl --silent \
 name: github-project-connect-action
 on:
   pull_request:
-    types: [review_requested closed]
+    types: [review_requested, closed]
   pull_request_review:
     types: [submitted]
 
