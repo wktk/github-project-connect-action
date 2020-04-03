@@ -1,5 +1,5 @@
 {
-  "name": "sync-github-project-issue-cards-and-pr",
+  "name": "github-project-connect-action",
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
@@ -7,9 +7,9 @@
     "package": "ncc build src/index.ts",
     "test": "eslint src/*.ts"
   },
-  "repository": "https://github.com/wktk/sync-github-project-issue-cards-and-pr",
+  "repository": "https://github.com/wktk/github-project-connect-action",
   "bugs": {
-    "url": "https://github.com/wktk/sync-github-project-issue-cards-and-pr/issues"
+    "url": "https://github.com/wktk/github-project-connect-action/issues"
   },
   "keywords": [
     "GitHub",
