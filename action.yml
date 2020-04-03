@@ -1,6 +1,6 @@
 name: Sync GitHub Project Issue cards and PR
 description: Move GitHub Project cards associated to an issue, according to the PRs that refer that issue
-author: @wktk
+author: "@wktk"
 inputs:
   github-token:
     description: "GitHub API token with repo scope.  GITHUB_TOKEN cannot be used as it doesn't have access to the Projects API."
