@@ -4277,7 +4277,7 @@ function run() {
             // Find a project card linked to the issue
             const project = Number(core.getInput("project-id", { required: true }));
             const cardId = yield findCard(project, owner, repo, issue);
-            const columnId = Number(core.getInput("to-columns", { required: true }));
+            const columnId = Number(core.getInput("to-column", { required: true }));
             if (!cardId)
                 return console.log("No project cards fond.");
             console.log(`Found a card ${cardId} to be moved to ${columnId}`);
