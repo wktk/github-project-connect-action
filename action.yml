@@ -8,7 +8,7 @@ inputs:
   project-id:
     description: 'Numeric ID of the target GitHub Project'
     required: true
-  project-id:
+  to-column:
     description: 'Numeric ID of the destination column'
     required: true
 runs:
