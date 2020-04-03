@@ -4273,15 +4273,15 @@ function run() {
             const issue = findIssueReference(pull.data.title + pull.data.body);
             if (!issue)
                 return console.log("No issue # found.");
-            console.log(`Found: pull_request: #${number}, issue: ${issue}`);
+            console.log(`pull_request #${number} refers to issue #${issue}`);
             // Find a project card linked to the issue
             const project = Number(core.getInput("project-id", { required: true }));
             const cardId = yield findCard(project, owner, repo, issue);
             const columnId = Number(core.getInput("to-column", { required: true }));
             if (!cardId)
                 return console.log("No project cards fond.");
-            console.log(`Found a card ${cardId} to be moved to ${columnId}`);
             // Move the card
+            console.log(`Moving card (ID: ${cardId}) to column (ID: ${columnId})`);
             octokit.projects.moveCard({
                 card_id: cardId,
                 column_id: columnId,
