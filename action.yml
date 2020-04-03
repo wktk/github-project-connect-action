@@ -1,5 +1,5 @@
-name: Sync GitHub Project Issue cards and PR
-description: Move GitHub Project cards associated to an issue, according to the PRs that refer that issue
+name: GitHub Project Connect Action
+description: Connect Pull Request statuses to Issues on GitHub Project boards.
 author: "@wktk"
 inputs:
   github-token:
