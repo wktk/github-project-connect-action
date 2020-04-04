@@ -26,7 +26,7 @@ There are two ways to specify a project and a column where to move cards.  URL o
 
 - `project-id` *requried (if you use ID)*: Numeric ID of the target GitHub Project.
   - :warning: It doesn't appear in URL.  Find it from the API (see below).
-- `to-column` *required (if you use ID)*: Numeric ID of the destiation column.
+- `column-id` *required (if you use ID)*: Numeric ID of the destiation column.
   - It appears in URL but you can also find it from the API (see below).
 
 ```sh
@@ -89,5 +89,5 @@ jobs:
           github-token: ${{ secrets.REPO_TOKEN }}
           # Instead of URL you may use ID
           project-id: 4226438
-          to-column: 8564174
+          column-id: 8564174
 ```

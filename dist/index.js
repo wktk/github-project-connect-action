@@ -4292,7 +4292,8 @@ function run() {
                 ? yield parseProjectURL(columnUrl)
                 : [
                     Number(core.getInput("project-id", { required: true })),
-                    Number(core.getInput("to-column", { required: true }))
+                    Number(core.getInput("to-column")) || // depreacted
+                        Number(core.getInput("column-id", { required: true }))
                 ];
             // Get the Pull Request
             const { owner, repo, number } = github.context.issue;

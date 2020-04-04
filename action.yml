@@ -9,8 +9,10 @@ inputs:
     description: 'URL of the column to move cards.'
   project-id:
     description: 'Numeric ID of the target GitHub Project'
-  to-column:
+  column-id:
     description: 'Numeric ID of the destination column'
+  to-column:
+    description: 'Deprecated.  Please use column-id instead.'
 runs:
   using: 'node12'
   main: 'dist/index.js'
