@@ -4281,7 +4281,7 @@ function parseProjectURL(input) {
         const column = url.hash.match(/#column-(\d+)/);
         if (!project || !column)
             throw "Invalid column URL";
-        return [project === null || project === void 0 ? void 0 : project.id, Number(column[1])];
+        return [project.id, Number(column[1])];
     });
 }
 function run() {

@@ -47,7 +47,7 @@ async function parseProjectURL(input: string): Promise<[number, number]> {
   );
   const column = url.hash.match(/#column-(\d+)/);
   if (!project || !column) throw "Invalid column URL";
-  return [project?.id, Number(column[1])];
+  return [project.id, Number(column[1])];
 }
 
 async function run(): Promise<void> {
