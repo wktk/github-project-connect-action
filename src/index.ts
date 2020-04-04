@@ -62,9 +62,13 @@ async function run(): Promise<void> {
               Number(core.getInput("column-id", { required: true }))
           ];
 
-    // Get the Pull Request
+    // Get the Pull Request (or Issue)
     const { owner, repo, number } = github.context.issue;
-    const pull = await octokit.pulls.get({ owner, repo, pull_number: number });
+    const pull = await octokit.issues.get({
+      owner,
+      repo,
+      issue_number: number
+    });
 
     // Find the Issue # in the PR text
     const issue = findIssueReference(pull.data.title + pull.data.body);
