@@ -5,12 +5,12 @@ inputs:
   github-token:
     description: "GitHub API token with repo scope.  GITHUB_TOKEN cannot be used as it doesn't have access to the Projects API."
     required: true
+  column-url:
+    description: 'URL of the column to move cards.'
   project-id:
     description: 'Numeric ID of the target GitHub Project'
-    required: true
   to-column:
     description: 'Numeric ID of the destination column'
-    required: true
 runs:
   using: 'node12'
   main: 'dist/index.js'

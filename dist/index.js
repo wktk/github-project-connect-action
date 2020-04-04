@@ -4263,9 +4263,37 @@ function findCard(project, owner, repo, issue) {
         }
     });
 }
+function parseProjectURL(input) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const url = new URL(input);
+        const [_, type, name] = url.pathname.split("/");
+        let projects;
+        if (type === "orgs") {
+            projects = octokit.projects.listForOrg({ org: name });
+        }
+        else if (type === "users") {
+            projects = octokit.projects.listForUser({ username: name });
+        }
+        else {
+            projects = octokit.projects.listForRepo({ owner: type, repo: name });
+        }
+        const project = (yield projects).data.find(project => project.html_url.endsWith(url.pathname));
+        const column = url.hash.match(/#column-(\d+)/);
+        if (!project || !column)
+            throw "Invalid column URL";
+        return [project === null || project === void 0 ? void 0 : project.id, Number(column[1])];
+    });
+}
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            const columnUrl = core.getInput("column-url");
+            const [project, columnId] = columnUrl != ""
+                ? yield parseProjectURL(columnUrl)
+                : [
+                    Number(core.getInput("project-id", { required: true })),
+                    Number(core.getInput("to-column", { required: true }))
+                ];
             // Get the Pull Request
             const { owner, repo, number } = github.context.issue;
             const pull = yield octokit.pulls.get({ owner, repo, pull_number: number });
@@ -4275,9 +4303,7 @@ function run() {
                 return console.log("No issue # found.");
             console.log(`pull_request #${number} refers to issue #${issue}`);
             // Find a project card linked to the issue
-            const project = Number(core.getInput("project-id", { required: true }));
             const cardId = yield findCard(project, owner, repo, issue);
-            const columnId = Number(core.getInput("to-column", { required: true }));
             if (!cardId)
                 return console.log("No project cards fond.");
             // Move the card

@@ -8,15 +8,29 @@ This idea is inspired by Waffle.io, which has shut down in 2019.
 
 ### Inputs
 
-- `github-token`: GitHub API token with `repo` access.
+#### Authentication
+- `github-token` *required*: GitHub API token with `repo` access.
   - :warning: `secrets.GITHUB_TOKEN` can't be used as this actions uses an preview API.  Obtain it from [Personal access tokens].
-- `project-id`: Numeric ID of the target GitHub Project.
+
+#### Configuration
+
+There are two ways to specify a project and a column where to move cards.  URL or ID is required.
+
+##### URL
+
+- `column-url` *required (if you use URL)*: URL of the column to move cards.
+
+![](./misc/column-id.gif)
+
+##### ID
+
+- `project-id` *requried (if you use ID)*: Numeric ID of the target GitHub Project.
   - :warning: It doesn't appear in URL.  Find it from the API (see below).
-- `to-column`: Numeric ID of the destiation column.
-  - :warning: It doesn't appear in URL.  Find it from the API (see below).
+- `to-column` *required (if you use ID)*: Numeric ID of the destiation column.
+  - It appears in URL but you can also find it from the API (see below).
 
 ```sh
-# Find a Project Id (User)
+# Find a Project ID (User)
 curl --silent \
   -H "accept: application/vnd.github.inertia-preview+json" \
   -H "authorization: token <your_github_token>" \
@@ -59,22 +73,21 @@ jobs:
         uses: wktk/github-project-connect-action@master
         with:
           github-token: ${{ secrets.REPO_TOKEN }}
-          project-id: 4226438
-          to-column: 8564172
+          column-url: https://github.com/users/wktk/projects/1#column-8564172
 
       - name: When pull_request_review approved, move the connected issue to the Ready column
         if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved'
         uses: wktk/github-project-connect-action@master
         with:
           github-token: ${{ secrets.REPO_TOKEN }}
-          project-id: 4226438
-          to-column: 8564173
+          column-url: https://github.com/wktk/sandbox/projects/1#column-5250623
 
       - name: When pull_request merged, move the connected issue to the Done column
         if: github.event_name == 'pull_request' && github.event.pull_request.merged_at != ''
         uses: wktk/github-project-connect-action@master
         with:
           github-token: ${{ secrets.REPO_TOKEN }}
+          # Instead of URL you may use ID
           project-id: 4226438
           to-column: 8564174
 ```

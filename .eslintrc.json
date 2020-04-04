@@ -23,6 +23,7 @@
     "ecmaVersion": 2018
   },
   "rules": {
+    "@typescript-eslint/no-unused-vars": ["warn", { "varsIgnorePattern": "^_" }],
     "@typescript-eslint/camelcase": ["error", { "properties": "never" } ]
   }
 }
