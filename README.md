@@ -20,7 +20,7 @@ There are two ways to specify a project and a column where to move cards.  URL o
 
 - `column-url` *required (if you use URL)*: URL of the column to move cards.
 
-![](./misc/column-id.gif)
+<img src="https://raw.githubusercontent.com/wktk/github-project-connect-action/9b857228c249bb63f31431c3bf3067c9d095a6d5/misc/column-id.gif" width="360">
 
 ##### ID
 
