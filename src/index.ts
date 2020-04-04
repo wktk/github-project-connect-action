@@ -31,7 +31,7 @@ async function findCard(
 
 async function parseProjectURL(input: string): Promise<[number, number]> {
   const url = new URL(input);
-  const [_, type, name] = url.pathname.split("/");
+  const [, type, name] = url.pathname.split("/");
 
   let projects: Promise<Octokit.Response<Octokit.ProjectsListForRepoResponse>>;
   if (type === "orgs") {

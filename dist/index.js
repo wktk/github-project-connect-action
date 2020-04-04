@@ -4266,7 +4266,7 @@ function findCard(project, owner, repo, issue) {
 function parseProjectURL(input) {
     return __awaiter(this, void 0, void 0, function* () {
         const url = new URL(input);
-        const [_, type, name] = url.pathname.split("/");
+        const [, type, name] = url.pathname.split("/");
         let projects;
         if (type === "orgs") {
             projects = octokit.projects.listForOrg({ org: name });
