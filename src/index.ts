@@ -42,7 +42,7 @@ async function parseProjectURL(input: string): Promise<[number, number]> {
     projects = octokit.projects.listForRepo({ owner: type, repo: name });
   }
 
-  const project = (await projects).data.find(project =>
+  const project = (await projects).data.find((project) =>
     project.html_url.endsWith(url.pathname)
   );
   const column = url.hash.match(/#column-(\d+)/);
@@ -59,7 +59,7 @@ async function run(): Promise<void> {
         : [
             Number(core.getInput("project-id", { required: true })),
             Number(core.getInput("to-column")) || // depreacted
-              Number(core.getInput("column-id", { required: true }))
+              Number(core.getInput("column-id", { required: true })),
           ];
 
     // Get the Pull Request (or Issue)
@@ -67,7 +67,7 @@ async function run(): Promise<void> {
     const pull = await octokit.issues.get({
       owner,
       repo,
-      issue_number: number
+      issue_number: number,
     });
 
     // Find the Issue # in the PR text
@@ -84,7 +84,7 @@ async function run(): Promise<void> {
     octokit.projects.moveCard({
       card_id: cardId,
       column_id: columnId,
-      position: "top"
+      position: "top",
     });
   } catch (error) {
     core.setFailed(error.message);

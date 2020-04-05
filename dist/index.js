@@ -4312,7 +4312,7 @@ function parseProjectURL(input) {
         else {
             projects = octokit.projects.listForRepo({ owner: type, repo: name });
         }
-        const project = (yield projects).data.find(project => project.html_url.endsWith(url.pathname));
+        const project = (yield projects).data.find((project) => project.html_url.endsWith(url.pathname));
         const column = url.hash.match(/#column-(\d+)/);
         if (!project || !column)
             throw "Invalid column URL";
@@ -4328,14 +4328,14 @@ function run() {
                 : [
                     Number(core.getInput("project-id", { required: true })),
                     Number(core.getInput("to-column")) || // depreacted
-                        Number(core.getInput("column-id", { required: true }))
+                        Number(core.getInput("column-id", { required: true })),
                 ];
             // Get the Pull Request (or Issue)
             const { owner, repo, number } = github.context.issue;
             const pull = yield octokit.issues.get({
                 owner,
                 repo,
-                issue_number: number
+                issue_number: number,
             });
             // Find the Issue # in the PR text
             const issue = findIssueReference(pull.data.title + pull.data.body);
@@ -4351,7 +4351,7 @@ function run() {
             octokit.projects.moveCard({
                 card_id: cardId,
                 column_id: columnId,
-                position: "top"
+                position: "top",
             });
         }
         catch (error) {
