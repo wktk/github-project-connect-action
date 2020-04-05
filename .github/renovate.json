@@ -1,4 +1,6 @@
 {
+  "assignees": ["wktk"],
+  "reviewers": ["wktk"],
   "extends": [
     "config:base"
   ]
