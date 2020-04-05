@@ -10,7 +10,7 @@ This idea is inspired by Waffle.io, which has shut down in 2019.
 
 #### Authentication
 - `github-token` *required*: GitHub API token with `repo` access.
-  - :warning: `secrets.GITHUB_TOKEN` can't be used as this actions uses an preview API.  Obtain it from [Personal access tokens].
+  - :warning: `secrets.GITHUB_TOKEN` can't be used as this actions uses an preview API.  Obtain one from [Personal access tokens].
 
 #### Configuration
 
