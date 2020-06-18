@@ -3012,12 +3012,13 @@ function findIssueReference(text) {
         return Number(match[1]);
 }
 function findCard(project, owner, repo, issue) {
+    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         const columns = yield octokit.projects.listColumns({ project_id: project });
         for (const column of columns.data) {
             const cards = yield octokit.projects.listCards({ column_id: column.id });
             for (const card of cards.data) {
-                if (card.content_url.endsWith(`${owner}/${repo}/issues/${issue}`)) {
+                if ((_a = card.content_url) === null || _a === void 0 ? void 0 : _a.endsWith(`${owner}/${repo}/issues/${issue}`)) {
                     return card.id;
                 }
             }

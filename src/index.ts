@@ -22,7 +22,7 @@ async function findCard(
   for (const column of columns.data) {
     const cards = await octokit.projects.listCards({ column_id: column.id });
     for (const card of cards.data) {
-      if (card.content_url.endsWith(`${owner}/${repo}/issues/${issue}`)) {
+      if (card.content_url?.endsWith(`${owner}/${repo}/issues/${issue}`)) {
         return card.id;
       }
     }
