@@ -294,73 +294,6 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
-/***/ 15:
-/***/ (function(module) {
-
-"use strict";
-
-
-const isWin = process.platform === 'win32';
-
-function notFoundError(original, syscall) {
-    return Object.assign(new Error(`${syscall} ${original.command} ENOENT`), {
-        code: 'ENOENT',
-        errno: 'ENOENT',
-        syscall: `${syscall} ${original.command}`,
-        path: original.command,
-        spawnargs: original.args,
-    });
-}
-
-function hookChildProcess(cp, parsed) {
-    if (!isWin) {
-        return;
-    }
-
-    const originalEmit = cp.emit;
-
-    cp.emit = function (name, arg1) {
-        // If emitting "exit" event and exit code is 1, we need to check if
-        // the command exists and emit an "error" instead
-        // See https://github.com/IndigoUnited/node-cross-spawn/issues/16
-        if (name === 'exit') {
-            const err = verifyENOENT(arg1, parsed, 'spawn');
-
-            if (err) {
-                return originalEmit.call(cp, 'error', err);
-            }
-        }
-
-        return originalEmit.apply(cp, arguments); // eslint-disable-line prefer-rest-params
-    };
-}
-
-function verifyENOENT(status, parsed) {
-    if (isWin && status === 1 && !parsed.file) {
-        return notFoundError(parsed.original, 'spawn');
-    }
-
-    return null;
-}
-
-function verifyENOENTSync(status, parsed) {
-    if (isWin && status === 1 && !parsed.file) {
-        return notFoundError(parsed.original, 'spawnSync');
-    }
-
-    return null;
-}
-
-module.exports = {
-    hookChildProcess,
-    verifyENOENT,
-    verifyENOENTSync,
-    notFoundError,
-};
-
-
-/***/ }),
-
 /***/ 16:
 /***/ (function(module) {
 
@@ -421,27 +354,6 @@ module.exports = require("https");
 
 /***/ }),
 
-/***/ 39:
-/***/ (function(module) {
-
-"use strict";
-
-module.exports = opts => {
-	opts = opts || {};
-
-	const env = opts.env || process.env;
-	const platform = opts.platform || process.platform;
-
-	if (platform !== 'win32') {
-		return 'PATH';
-	}
-
-	return Object.keys(env).find(x => x.toUpperCase() === 'PATH') || 'Path';
-};
-
-
-/***/ }),
-
 /***/ 47:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -465,7 +377,7 @@ function factory(plugins) {
 "use strict";
 
 const os = __webpack_require__(87);
-const execa = __webpack_require__(955);
+const execa = __webpack_require__(675);
 
 // Reference: https://www.gaijin.at/en/lstwinver.php
 const names = new Map([
@@ -519,7 +431,14 @@ module.exports = windowsRelease;
 
 /***/ }),
 
-/***/ 55:
+/***/ 87:
+/***/ (function(module) {
+
+module.exports = require("os");
+
+/***/ }),
+
+/***/ 88:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 module.exports = which
@@ -658,13 +577,6 @@ function whichSync (cmd, opt) {
   throw getNotFoundError(cmd)
 }
 
-
-/***/ }),
-
-/***/ 87:
-/***/ (function(module) {
-
-module.exports = require("os");
 
 /***/ }),
 
@@ -1920,64 +1832,6 @@ function withAuthorizationPrefix(authorization) {
 
 /***/ }),
 
-/***/ 145:
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-const pump = __webpack_require__(453);
-const bufferStream = __webpack_require__(966);
-
-class MaxBufferError extends Error {
-	constructor() {
-		super('maxBuffer exceeded');
-		this.name = 'MaxBufferError';
-	}
-}
-
-function getStream(inputStream, options) {
-	if (!inputStream) {
-		return Promise.reject(new Error('Expected a stream'));
-	}
-
-	options = Object.assign({maxBuffer: Infinity}, options);
-
-	const {maxBuffer} = options;
-
-	let stream;
-	return new Promise((resolve, reject) => {
-		const rejectPromise = error => {
-			if (error) { // A null check
-				error.bufferedData = stream.getBufferedValue();
-			}
-			reject(error);
-		};
-
-		stream = pump(inputStream, bufferStream(options), error => {
-			if (error) {
-				rejectPromise(error);
-				return;
-			}
-
-			resolve();
-		});
-
-		stream.on('data', () => {
-			if (stream.getBufferedLength() > maxBuffer) {
-				rejectPromise(new MaxBufferError());
-			}
-		});
-	}).then(() => stream.getBufferedValue());
-}
-
-module.exports = getStream;
-module.exports.buffer = (stream, options) => getStream(stream, Object.assign({}, options, {encoding: 'buffer'}));
-module.exports.array = (stream, options) => getStream(stream, Object.assign({}, options, {array: true}));
-module.exports.MaxBufferError = MaxBufferError;
-
-
-/***/ }),
-
 /***/ 148:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -1992,7 +1846,7 @@ function paginatePlugin(octokit) {
 
 /***/ }),
 
-/***/ 168:
+/***/ 151:
 /***/ (function(module) {
 
 "use strict";
@@ -2037,6 +1891,16 @@ module.exports = opts => {
 
 	return result;
 };
+
+
+/***/ }),
+
+/***/ 171:
+/***/ (function(module) {
+
+"use strict";
+
+module.exports = /^#!.*/;
 
 
 /***/ }),
@@ -2209,65 +2073,55 @@ module.exports = {"name":"@octokit/rest","version":"16.43.1","publishConfig":{"a
 
 /***/ }),
 
-/***/ 257:
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
+/***/ 234:
+/***/ (function(module) {
 
 "use strict";
 
 
-Object.defineProperty(exports, '__esModule', { value: true });
+// See http://www.robvanderwoude.com/escapechars.php
+const metaCharsRegExp = /([()\][%!^"`<>&|;, *?])/g;
 
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
+function escapeCommand(arg) {
+    // Escape meta chars
+    arg = arg.replace(metaCharsRegExp, '^$1');
 
-var deprecation = __webpack_require__(692);
-var once = _interopDefault(__webpack_require__(969));
-
-const logOnce = once(deprecation => console.warn(deprecation));
-/**
- * Error with extra properties to help with debugging
- */
-
-class RequestError extends Error {
-  constructor(message, statusCode, options) {
-    super(message); // Maintains proper stack trace (only available on V8)
-
-    /* istanbul ignore next */
-
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
-    }
-
-    this.name = "HttpError";
-    this.status = statusCode;
-    Object.defineProperty(this, "code", {
-      get() {
-        logOnce(new deprecation.Deprecation("[@octokit/request-error] `error.code` is deprecated, use `error.status`."));
-        return statusCode;
-      }
-
-    });
-    this.headers = options.headers || {}; // redact request credentials without mutating original request options
-
-    const requestCopy = Object.assign({}, options.request);
-
-    if (options.request.headers.authorization) {
-      requestCopy.headers = Object.assign({}, options.request.headers, {
-        authorization: options.request.headers.authorization.replace(/ .*$/, " [REDACTED]")
-      });
-    }
-
-    requestCopy.url = requestCopy.url // client_id & client_secret can be passed as URL query parameters to increase rate limit
-    // see https://developer.github.com/v3/#increasing-the-unauthenticated-rate-limit-for-oauth-applications
-    .replace(/\bclient_secret=\w+/g, "client_secret=[REDACTED]") // OAuth tokens can be passed as URL query parameters, although it is not recommended
-    // see https://developer.github.com/v3/#oauth2-token-sent-in-a-header
-    .replace(/\baccess_token=\w+/g, "access_token=[REDACTED]");
-    this.request = requestCopy;
-  }
-
+    return arg;
 }
 
-exports.RequestError = RequestError;
-//# sourceMappingURL=index.js.map
+function escapeArgument(arg, doubleEscapeMetaChars) {
+    // Convert to string
+    arg = `${arg}`;
+
+    // Algorithm below is based on https://qntm.org/cmd
+
+    // Sequence of backslashes followed by a double quote:
+    // double up all the backslashes and escape the double quote
+    arg = arg.replace(/(\\*)"/g, '$1$1\\"');
+
+    // Sequence of backslashes followed by the end of the string
+    // (which will become a double quote later):
+    // double up all the backslashes
+    arg = arg.replace(/(\\*)$/, '$1$1');
+
+    // All other backslashes occur literally
+
+    // Quote the whole thing:
+    arg = `"${arg}"`;
+
+    // Escape meta chars
+    arg = arg.replace(metaCharsRegExp, '^$1');
+
+    // Double escape meta chars if necessary
+    if (doubleEscapeMetaChars) {
+        arg = arg.replace(metaCharsRegExp, '^$1');
+    }
+
+    return arg;
+}
+
+module.exports.command = escapeCommand;
+module.exports.argument = escapeArgument;
 
 
 /***/ }),
@@ -2580,7 +2434,7 @@ function register (state, name, method, options) {
 
 module.exports = authenticationRequestError;
 
-const { RequestError } = __webpack_require__(463);
+const { RequestError } = __webpack_require__(497);
 
 function authenticationRequestError(state, error, options) {
   if (!error.headers) throw error;
@@ -2911,75 +2765,6 @@ exports.paginateRest = paginateRest;
 
 /***/ }),
 
-/***/ 306:
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-const fs = __webpack_require__(747);
-const shebangCommand = __webpack_require__(907);
-
-function readShebang(command) {
-    // Read the first 150 bytes from the file
-    const size = 150;
-    let buffer;
-
-    if (Buffer.alloc) {
-        // Node.js v4.5+ / v5.10+
-        buffer = Buffer.alloc(size);
-    } else {
-        // Old Node.js API
-        buffer = new Buffer(size);
-        buffer.fill(0); // zero-fill
-    }
-
-    let fd;
-
-    try {
-        fd = fs.openSync(command, 'r');
-        fs.readSync(fd, buffer, 0, size, 0);
-        fs.closeSync(fd);
-    } catch (e) { /* Empty */ }
-
-    // Attempt to extract shebang (null is returned if not a shebang)
-    return shebangCommand(buffer.toString());
-}
-
-module.exports = readShebang;
-
-
-/***/ }),
-
-/***/ 323:
-/***/ (function(module) {
-
-"use strict";
-
-
-var isStream = module.exports = function (stream) {
-	return stream !== null && typeof stream === 'object' && typeof stream.pipe === 'function';
-};
-
-isStream.writable = function (stream) {
-	return isStream(stream) && stream.writable !== false && typeof stream._write === 'function' && typeof stream._writableState === 'object';
-};
-
-isStream.readable = function (stream) {
-	return isStream(stream) && stream.readable !== false && typeof stream._read === 'function' && typeof stream._readableState === 'object';
-};
-
-isStream.duplex = function (stream) {
-	return isStream.writable(stream) && isStream.readable(stream);
-};
-
-isStream.transform = function (stream) {
-	return isStream.duplex(stream) && typeof stream._transform === 'function' && typeof stream._transformState === 'object';
-};
-
-
-/***/ }),
-
 /***/ 325:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -3007,7 +2792,7 @@ const github = __importStar(__webpack_require__(469));
 const token = core.getInput("github-token", { required: true });
 const octokit = new github.GitHub(token);
 function findIssueReference(text) {
-    const match = text.match(/(?:connects?(?:\sto)?|close[sd]?|fixe?[sd]?|resolve[sd]?)\s+#(\d+)/);
+    const match = text.match(/(?:[Cc]onnects?(?:\sto)?|[Cc]lose[sd]?|[Ff]ixe?[sd]?|[Rr]esolve[sd]?)\s+#(\d+)/);
     if (match)
         return Number(match[1]);
 }
@@ -3094,174 +2879,106 @@ run();
 /***/ 336:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
-module.exports = hasLastPage
+"use strict";
 
-const deprecate = __webpack_require__(370)
-const getPageLinks = __webpack_require__(577)
 
-function hasLastPage (link) {
-  deprecate(`octokit.hasLastPage() – You can use octokit.paginate or async iterators instead: https://github.com/octokit/rest.js#pagination.`)
-  return getPageLinks(link).last
+const fs = __webpack_require__(747);
+const shebangCommand = __webpack_require__(998);
+
+function readShebang(command) {
+    // Read the first 150 bytes from the file
+    const size = 150;
+    let buffer;
+
+    if (Buffer.alloc) {
+        // Node.js v4.5+ / v5.10+
+        buffer = Buffer.alloc(size);
+    } else {
+        // Old Node.js API
+        buffer = new Buffer(size);
+        buffer.fill(0); // zero-fill
+    }
+
+    let fd;
+
+    try {
+        fd = fs.openSync(command, 'r');
+        fs.readSync(fd, buffer, 0, size, 0);
+        fs.closeSync(fd);
+    } catch (e) { /* Empty */ }
+
+    // Attempt to extract shebang (null is returned if not a shebang)
+    return shebangCommand(buffer.toString());
 }
+
+module.exports = readShebang;
 
 
 /***/ }),
 
 /***/ 348:
-/***/ (function(module, __unusedexports, __webpack_require__) {
+/***/ (function(module) {
 
 "use strict";
 
 
-module.exports = validate;
+const isWin = process.platform === 'win32';
 
-const { RequestError } = __webpack_require__(463);
-const get = __webpack_require__(854);
-const set = __webpack_require__(883);
+function notFoundError(original, syscall) {
+    return Object.assign(new Error(`${syscall} ${original.command} ENOENT`), {
+        code: 'ENOENT',
+        errno: 'ENOENT',
+        syscall: `${syscall} ${original.command}`,
+        path: original.command,
+        spawnargs: original.args,
+    });
+}
 
-function validate(octokit, options) {
-  if (!options.request.validate) {
-    return;
-  }
-  const { validate: params } = options.request;
-
-  Object.keys(params).forEach(parameterName => {
-    const parameter = get(params, parameterName);
-
-    const expectedType = parameter.type;
-    let parentParameterName;
-    let parentValue;
-    let parentParamIsPresent = true;
-    let parentParameterIsArray = false;
-
-    if (/\./.test(parameterName)) {
-      parentParameterName = parameterName.replace(/\.[^.]+$/, "");
-      parentParameterIsArray = parentParameterName.slice(-2) === "[]";
-      if (parentParameterIsArray) {
-        parentParameterName = parentParameterName.slice(0, -2);
-      }
-      parentValue = get(options, parentParameterName);
-      parentParamIsPresent =
-        parentParameterName === "headers" ||
-        (typeof parentValue === "object" && parentValue !== null);
+function hookChildProcess(cp, parsed) {
+    if (!isWin) {
+        return;
     }
 
-    const values = parentParameterIsArray
-      ? (get(options, parentParameterName) || []).map(
-          value => value[parameterName.split(/\./).pop()]
-        )
-      : [get(options, parameterName)];
+    const originalEmit = cp.emit;
 
-    values.forEach((value, i) => {
-      const valueIsPresent = typeof value !== "undefined";
-      const valueIsNull = value === null;
-      const currentParameterName = parentParameterIsArray
-        ? parameterName.replace(/\[\]/, `[${i}]`)
-        : parameterName;
+    cp.emit = function (name, arg1) {
+        // If emitting "exit" event and exit code is 1, we need to check if
+        // the command exists and emit an "error" instead
+        // See https://github.com/IndigoUnited/node-cross-spawn/issues/16
+        if (name === 'exit') {
+            const err = verifyENOENT(arg1, parsed, 'spawn');
 
-      if (!parameter.required && !valueIsPresent) {
-        return;
-      }
-
-      // if the parent parameter is of type object but allows null
-      // then the child parameters can be ignored
-      if (!parentParamIsPresent) {
-        return;
-      }
-
-      if (parameter.allowNull && valueIsNull) {
-        return;
-      }
-
-      if (!parameter.allowNull && valueIsNull) {
-        throw new RequestError(
-          `'${currentParameterName}' cannot be null`,
-          400,
-          {
-            request: options
-          }
-        );
-      }
-
-      if (parameter.required && !valueIsPresent) {
-        throw new RequestError(
-          `Empty value for parameter '${currentParameterName}': ${JSON.stringify(
-            value
-          )}`,
-          400,
-          {
-            request: options
-          }
-        );
-      }
-
-      // parse to integer before checking for enum
-      // so that string "1" will match enum with number 1
-      if (expectedType === "integer") {
-        const unparsedValue = value;
-        value = parseInt(value, 10);
-        if (isNaN(value)) {
-          throw new RequestError(
-            `Invalid value for parameter '${currentParameterName}': ${JSON.stringify(
-              unparsedValue
-            )} is NaN`,
-            400,
-            {
-              request: options
+            if (err) {
+                return originalEmit.call(cp, 'error', err);
             }
-          );
         }
-      }
 
-      if (parameter.enum && parameter.enum.indexOf(String(value)) === -1) {
-        throw new RequestError(
-          `Invalid value for parameter '${currentParameterName}': ${JSON.stringify(
-            value
-          )}`,
-          400,
-          {
-            request: options
-          }
-        );
-      }
-
-      if (parameter.validation) {
-        const regex = new RegExp(parameter.validation);
-        if (!regex.test(value)) {
-          throw new RequestError(
-            `Invalid value for parameter '${currentParameterName}': ${JSON.stringify(
-              value
-            )}`,
-            400,
-            {
-              request: options
-            }
-          );
-        }
-      }
-
-      if (expectedType === "object" && typeof value === "string") {
-        try {
-          value = JSON.parse(value);
-        } catch (exception) {
-          throw new RequestError(
-            `JSON parse error of value for parameter '${currentParameterName}': ${JSON.stringify(
-              value
-            )}`,
-            400,
-            {
-              request: options
-            }
-          );
-        }
-      }
-
-      set(options, parameter.mapTo || currentParameterName, value);
-    });
-  });
-
-  return options;
+        return originalEmit.apply(cp, arguments); // eslint-disable-line prefer-rest-params
+    };
 }
+
+function verifyENOENT(status, parsed) {
+    if (isWin && status === 1 && !parsed.file) {
+        return notFoundError(parsed.original, 'spawn');
+    }
+
+    return null;
+}
+
+function verifyENOENTSync(status, parsed) {
+    if (isWin && status === 1 && !parsed.file) {
+        return notFoundError(parsed.original, 'spawnSync');
+    }
+
+    return null;
+}
+
+module.exports = {
+    hookChildProcess,
+    verifyENOENT,
+    verifyENOENTSync,
+    notFoundError,
+};
 
 
 /***/ }),
@@ -3271,7 +2988,7 @@ function validate(octokit, options) {
 
 module.exports = authenticationRequestError;
 
-const { RequestError } = __webpack_require__(463);
+const { RequestError } = __webpack_require__(497);
 
 function authenticationRequestError(state, error, options) {
   /* istanbul ignore next */
@@ -3374,7 +3091,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
-var isPlainObject = _interopDefault(__webpack_require__(626));
+var isPlainObject = _interopDefault(__webpack_require__(696));
 var universalUserAgent = __webpack_require__(562);
 
 function lowercaseKeys(object) {
@@ -3751,6 +3468,63 @@ exports.endpoint = endpoint;
 
 /***/ }),
 
+/***/ 397:
+/***/ (function(module) {
+
+module.exports = function btoa(str) {
+  return new Buffer(str).toString('base64')
+}
+
+
+/***/ }),
+
+/***/ 400:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+const cp = __webpack_require__(129);
+const parse = __webpack_require__(510);
+const enoent = __webpack_require__(348);
+
+function spawn(command, args, options) {
+    // Parse the arguments
+    const parsed = parse(command, args, options);
+
+    // Spawn the child process
+    const spawned = cp.spawn(parsed.command, parsed.args, parsed.options);
+
+    // Hook into child process "exit" event to emit an error if the command
+    // does not exists, see: https://github.com/IndigoUnited/node-cross-spawn/issues/16
+    enoent.hookChildProcess(spawned, parsed);
+
+    return spawned;
+}
+
+function spawnSync(command, args, options) {
+    // Parse the arguments
+    const parsed = parse(command, args, options);
+
+    // Spawn the child process
+    const result = cp.spawnSync(parsed.command, parsed.args, parsed.options);
+
+    // Analyze if the command does not exist, see: https://github.com/IndigoUnited/node-cross-spawn/issues/16
+    result.error = result.error || enoent.verifyENOENTSync(result.status, parsed);
+
+    return result;
+}
+
+module.exports = spawn;
+module.exports.spawn = spawn;
+module.exports.sync = spawnSync;
+
+module.exports._parse = parse;
+module.exports._enoent = enoent;
+
+
+/***/ }),
+
 /***/ 402:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -3787,6 +3561,53 @@ function Octokit(plugins, options) {
 
 /***/ }),
 
+/***/ 406:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+const path = __webpack_require__(622);
+const pathKey = __webpack_require__(829);
+
+module.exports = opts => {
+	opts = Object.assign({
+		cwd: process.cwd(),
+		path: process.env[pathKey()]
+	}, opts);
+
+	let prev;
+	let pth = path.resolve(opts.cwd);
+	const ret = [];
+
+	while (prev !== pth) {
+		ret.push(path.join(pth, 'node_modules/.bin'));
+		prev = pth;
+		pth = path.resolve(pth, '..');
+	}
+
+	// ensure the running `node` binary is used
+	ret.push(path.dirname(process.execPath));
+
+	return ret.concat(opts.path).join(path.delimiter);
+};
+
+module.exports.env = opts => {
+	opts = Object.assign({
+		env: process.env
+	}, opts);
+
+	const env = Object.assign({}, opts.env);
+	const path = pathKey({env});
+
+	opts.path = env[path];
+	env[path] = module.exports(opts);
+
+	return env;
+};
+
+
+/***/ }),
+
 /***/ 413:
 /***/ (function(module) {
 
@@ -3794,7 +3615,62 @@ module.exports = require("stream");
 
 /***/ }),
 
-/***/ 427:
+/***/ 416:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+const path = __webpack_require__(622);
+const which = __webpack_require__(88);
+const pathKey = __webpack_require__(829)();
+
+function resolveCommandAttempt(parsed, withoutPathExt) {
+    const cwd = process.cwd();
+    const hasCustomCwd = parsed.options.cwd != null;
+
+    // If a custom `cwd` was specified, we need to change the process cwd
+    // because `which` will do stat calls but does not support a custom cwd
+    if (hasCustomCwd) {
+        try {
+            process.chdir(parsed.options.cwd);
+        } catch (err) {
+            /* Empty */
+        }
+    }
+
+    let resolved;
+
+    try {
+        resolved = which.sync(parsed.command, {
+            path: (parsed.options.env || process.env)[pathKey],
+            pathExt: withoutPathExt ? path.delimiter : undefined,
+        });
+    } catch (e) {
+        /* Empty */
+    } finally {
+        process.chdir(cwd);
+    }
+
+    // If we successfully resolved, ensure that an absolute path is returned
+    // Note that when a custom `cwd` was used, we need to resolve to an absolute path based on it
+    if (resolved) {
+        resolved = path.resolve(hasCustomCwd ? parsed.options.cwd : '', resolved);
+    }
+
+    return resolved;
+}
+
+function resolveCommand(parsed) {
+    return resolveCommandAttempt(parsed) || resolveCommandAttempt(parsed, true);
+}
+
+module.exports = resolveCommand;
+
+
+/***/ }),
+
+/***/ 418:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -3846,7 +3722,7 @@ function errname(uv, code) {
 
 module.exports = octokitValidate;
 
-const validate = __webpack_require__(348);
+const validate = __webpack_require__(858);
 
 function octokitValidate(octokit) {
   octokit.hook.before("request", validate.bind(null, octokit));
@@ -6068,7 +5944,7 @@ exports.getState = getState;
 
 module.exports = authenticationBeforeRequest;
 
-const btoa = __webpack_require__(675);
+const btoa = __webpack_require__(397);
 const uniq = __webpack_require__(126);
 
 function authenticationBeforeRequest(state, options) {
@@ -6113,16 +5989,6 @@ function authenticationBeforeRequest(state, options) {
 
 /***/ }),
 
-/***/ 473:
-/***/ (function(module) {
-
-"use strict";
-
-module.exports = /^#!.*/;
-
-
-/***/ }),
-
 /***/ 489:
 /***/ (function(module) {
 
@@ -6151,55 +6017,198 @@ function validateAuth(auth) {
 
 /***/ }),
 
-/***/ 510:
-/***/ (function(module) {
+/***/ 497:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
 
-module.exports = addHook
+"use strict";
 
-function addHook (state, kind, name, hook) {
-  var orig = hook
-  if (!state.registry[name]) {
-    state.registry[name] = []
-  }
 
-  if (kind === 'before') {
-    hook = function (method, options) {
-      return Promise.resolve()
-        .then(orig.bind(null, options))
-        .then(method.bind(null, options))
+Object.defineProperty(exports, '__esModule', { value: true });
+
+function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
+
+var deprecation = __webpack_require__(692);
+var once = _interopDefault(__webpack_require__(969));
+
+const logOnce = once(deprecation => console.warn(deprecation));
+/**
+ * Error with extra properties to help with debugging
+ */
+
+class RequestError extends Error {
+  constructor(message, statusCode, options) {
+    super(message); // Maintains proper stack trace (only available on V8)
+
+    /* istanbul ignore next */
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, this.constructor);
     }
-  }
 
-  if (kind === 'after') {
-    hook = function (method, options) {
-      var result
-      return Promise.resolve()
-        .then(method.bind(null, options))
-        .then(function (result_) {
-          result = result_
-          return orig(result, options)
-        })
-        .then(function () {
-          return result
-        })
+    this.name = "HttpError";
+    this.status = statusCode;
+    Object.defineProperty(this, "code", {
+      get() {
+        logOnce(new deprecation.Deprecation("[@octokit/request-error] `error.code` is deprecated, use `error.status`."));
+        return statusCode;
+      }
+
+    });
+    this.headers = options.headers || {}; // redact request credentials without mutating original request options
+
+    const requestCopy = Object.assign({}, options.request);
+
+    if (options.request.headers.authorization) {
+      requestCopy.headers = Object.assign({}, options.request.headers, {
+        authorization: options.request.headers.authorization.replace(/ .*$/, " [REDACTED]")
+      });
     }
+
+    requestCopy.url = requestCopy.url // client_id & client_secret can be passed as URL query parameters to increase rate limit
+    // see https://developer.github.com/v3/#increasing-the-unauthenticated-rate-limit-for-oauth-applications
+    .replace(/\bclient_secret=\w+/g, "client_secret=[REDACTED]") // OAuth tokens can be passed as URL query parameters, although it is not recommended
+    // see https://developer.github.com/v3/#oauth2-token-sent-in-a-header
+    .replace(/\baccess_token=\w+/g, "access_token=[REDACTED]");
+    this.request = requestCopy;
   }
 
-  if (kind === 'error') {
-    hook = function (method, options) {
-      return Promise.resolve()
-        .then(method.bind(null, options))
-        .catch(function (error) {
-          return orig(error, options)
-        })
-    }
-  }
-
-  state.registry[name].push({
-    hook: hook,
-    orig: orig
-  })
 }
+
+exports.RequestError = RequestError;
+//# sourceMappingURL=index.js.map
+
+
+/***/ }),
+
+/***/ 510:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+const path = __webpack_require__(622);
+const niceTry = __webpack_require__(948);
+const resolveCommand = __webpack_require__(416);
+const escape = __webpack_require__(234);
+const readShebang = __webpack_require__(336);
+const semver = __webpack_require__(955);
+
+const isWin = process.platform === 'win32';
+const isExecutableRegExp = /\.(?:com|exe)$/i;
+const isCmdShimRegExp = /node_modules[\\/].bin[\\/][^\\/]+\.cmd$/i;
+
+// `options.shell` is supported in Node ^4.8.0, ^5.7.0 and >= 6.0.0
+const supportsShellOption = niceTry(() => semver.satisfies(process.version, '^4.8.0 || ^5.7.0 || >= 6.0.0', true)) || false;
+
+function detectShebang(parsed) {
+    parsed.file = resolveCommand(parsed);
+
+    const shebang = parsed.file && readShebang(parsed.file);
+
+    if (shebang) {
+        parsed.args.unshift(parsed.file);
+        parsed.command = shebang;
+
+        return resolveCommand(parsed);
+    }
+
+    return parsed.file;
+}
+
+function parseNonShell(parsed) {
+    if (!isWin) {
+        return parsed;
+    }
+
+    // Detect & add support for shebangs
+    const commandFile = detectShebang(parsed);
+
+    // We don't need a shell if the command filename is an executable
+    const needsShell = !isExecutableRegExp.test(commandFile);
+
+    // If a shell is required, use cmd.exe and take care of escaping everything correctly
+    // Note that `forceShell` is an hidden option used only in tests
+    if (parsed.options.forceShell || needsShell) {
+        // Need to double escape meta chars if the command is a cmd-shim located in `node_modules/.bin/`
+        // The cmd-shim simply calls execute the package bin file with NodeJS, proxying any argument
+        // Because the escape of metachars with ^ gets interpreted when the cmd.exe is first called,
+        // we need to double escape them
+        const needsDoubleEscapeMetaChars = isCmdShimRegExp.test(commandFile);
+
+        // Normalize posix paths into OS compatible paths (e.g.: foo/bar -> foo\bar)
+        // This is necessary otherwise it will always fail with ENOENT in those cases
+        parsed.command = path.normalize(parsed.command);
+
+        // Escape command & arguments
+        parsed.command = escape.command(parsed.command);
+        parsed.args = parsed.args.map((arg) => escape.argument(arg, needsDoubleEscapeMetaChars));
+
+        const shellCommand = [parsed.command].concat(parsed.args).join(' ');
+
+        parsed.args = ['/d', '/s', '/c', `"${shellCommand}"`];
+        parsed.command = process.env.comspec || 'cmd.exe';
+        parsed.options.windowsVerbatimArguments = true; // Tell node's spawn that the arguments are already escaped
+    }
+
+    return parsed;
+}
+
+function parseShell(parsed) {
+    // If node supports the shell option, there's no need to mimic its behavior
+    if (supportsShellOption) {
+        return parsed;
+    }
+
+    // Mimic node shell option
+    // See https://github.com/nodejs/node/blob/b9f6a2dc059a1062776133f3d4fd848c4da7d150/lib/child_process.js#L335
+    const shellCommand = [parsed.command].concat(parsed.args).join(' ');
+
+    if (isWin) {
+        parsed.command = typeof parsed.options.shell === 'string' ? parsed.options.shell : process.env.comspec || 'cmd.exe';
+        parsed.args = ['/d', '/s', '/c', `"${shellCommand}"`];
+        parsed.options.windowsVerbatimArguments = true; // Tell node's spawn that the arguments are already escaped
+    } else {
+        if (typeof parsed.options.shell === 'string') {
+            parsed.command = parsed.options.shell;
+        } else if (process.platform === 'android') {
+            parsed.command = '/system/bin/sh';
+        } else {
+            parsed.command = '/bin/sh';
+        }
+
+        parsed.args = ['-c', shellCommand];
+    }
+
+    return parsed;
+}
+
+function parse(command, args, options) {
+    // Normalize arguments, similar to nodejs
+    if (args && !Array.isArray(args)) {
+        options = args;
+        args = null;
+    }
+
+    args = args ? args.slice(0) : []; // Clone array to avoid changing the original
+    options = Object.assign({}, options); // Clone object to avoid changing the original
+
+    // Build our parsed object
+    const parsed = {
+        command,
+        args,
+        options,
+        file: undefined,
+        original: {
+            command,
+            args,
+        },
+    };
+
+    // Delegate further parsing to shell or non-shell
+    return options.shell ? parseShell(parsed) : parseNonShell(parsed);
+}
+
+module.exports = parse;
 
 
 /***/ }),
@@ -6208,7 +6217,7 @@ function addHook (state, kind, name, hook) {
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 var register = __webpack_require__(280)
-var addHook = __webpack_require__(510)
+var addHook = __webpack_require__(838)
 var removeHook = __webpack_require__(866)
 
 // bind with array of arguments: https://stackoverflow.com/a/21792913
@@ -6833,117 +6842,6 @@ exports.HttpClient = HttpClient;
 
 /***/ }),
 
-/***/ 542:
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-const path = __webpack_require__(622);
-const which = __webpack_require__(55);
-const pathKey = __webpack_require__(39)();
-
-function resolveCommandAttempt(parsed, withoutPathExt) {
-    const cwd = process.cwd();
-    const hasCustomCwd = parsed.options.cwd != null;
-
-    // If a custom `cwd` was specified, we need to change the process cwd
-    // because `which` will do stat calls but does not support a custom cwd
-    if (hasCustomCwd) {
-        try {
-            process.chdir(parsed.options.cwd);
-        } catch (err) {
-            /* Empty */
-        }
-    }
-
-    let resolved;
-
-    try {
-        resolved = which.sync(parsed.command, {
-            path: (parsed.options.env || process.env)[pathKey],
-            pathExt: withoutPathExt ? path.delimiter : undefined,
-        });
-    } catch (e) {
-        /* Empty */
-    } finally {
-        process.chdir(cwd);
-    }
-
-    // If we successfully resolved, ensure that an absolute path is returned
-    // Note that when a custom `cwd` was used, we need to resolve to an absolute path based on it
-    if (resolved) {
-        resolved = path.resolve(hasCustomCwd ? parsed.options.cwd : '', resolved);
-    }
-
-    return resolved;
-}
-
-function resolveCommand(parsed) {
-    return resolveCommandAttempt(parsed) || resolveCommandAttempt(parsed, true);
-}
-
-module.exports = resolveCommand;
-
-
-/***/ }),
-
-/***/ 548:
-/***/ (function(module) {
-
-"use strict";
-
-
-/*!
- * isobject <https://github.com/jonschlinkert/isobject>
- *
- * Copyright (c) 2014-2017, Jon Schlinkert.
- * Released under the MIT License.
- */
-
-function isObject(val) {
-  return val != null && typeof val === 'object' && Array.isArray(val) === false;
-}
-
-/*!
- * is-plain-object <https://github.com/jonschlinkert/is-plain-object>
- *
- * Copyright (c) 2014-2017, Jon Schlinkert.
- * Released under the MIT License.
- */
-
-function isObjectObject(o) {
-  return isObject(o) === true
-    && Object.prototype.toString.call(o) === '[object Object]';
-}
-
-function isPlainObject(o) {
-  var ctor,prot;
-
-  if (isObjectObject(o) === false) return false;
-
-  // If has modified constructor
-  ctor = o.constructor;
-  if (typeof ctor !== 'function') return false;
-
-  // If has modified prototype
-  prot = ctor.prototype;
-  if (isObjectObject(prot) === false) return false;
-
-  // If constructor does not have an Object-specific method
-  if (prot.hasOwnProperty('isPrototypeOf') === false) {
-    return false;
-  }
-
-  // Most likely a plain Object
-  return true;
-}
-
-module.exports = isPlainObject;
-
-
-/***/ }),
-
 /***/ 550:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -7040,1500 +6938,69 @@ function getPageLinks (link) {
 
 /***/ }),
 
+/***/ 582:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+const {PassThrough} = __webpack_require__(413);
+
+module.exports = options => {
+	options = Object.assign({}, options);
+
+	const {array} = options;
+	let {encoding} = options;
+	const buffer = encoding === 'buffer';
+	let objectMode = false;
+
+	if (array) {
+		objectMode = !(encoding || buffer);
+	} else {
+		encoding = encoding || 'utf8';
+	}
+
+	if (buffer) {
+		encoding = null;
+	}
+
+	let len = 0;
+	const ret = [];
+	const stream = new PassThrough({objectMode});
+
+	if (encoding) {
+		stream.setEncoding(encoding);
+	}
+
+	stream.on('data', chunk => {
+		ret.push(chunk);
+
+		if (objectMode) {
+			len = ret.length;
+		} else {
+			len += chunk.length;
+		}
+	});
+
+	stream.getBufferedValue = () => {
+		if (array) {
+			return ret;
+		}
+
+		return buffer ? Buffer.concat(ret, len) : ret.join('');
+	};
+
+	stream.getBufferedLength = () => len;
+
+	return stream;
+};
+
+
+/***/ }),
+
 /***/ 605:
 /***/ (function(module) {
 
 module.exports = require("http");
-
-/***/ }),
-
-/***/ 607:
-/***/ (function(module, exports) {
-
-exports = module.exports = SemVer
-
-var debug
-/* istanbul ignore next */
-if (typeof process === 'object' &&
-    process.env &&
-    process.env.NODE_DEBUG &&
-    /\bsemver\b/i.test(process.env.NODE_DEBUG)) {
-  debug = function () {
-    var args = Array.prototype.slice.call(arguments, 0)
-    args.unshift('SEMVER')
-    console.log.apply(console, args)
-  }
-} else {
-  debug = function () {}
-}
-
-// Note: this is the semver.org version of the spec that it implements
-// Not necessarily the package version of this code.
-exports.SEMVER_SPEC_VERSION = '2.0.0'
-
-var MAX_LENGTH = 256
-var MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER ||
-  /* istanbul ignore next */ 9007199254740991
-
-// Max safe segment length for coercion.
-var MAX_SAFE_COMPONENT_LENGTH = 16
-
-// The actual regexps go on exports.re
-var re = exports.re = []
-var src = exports.src = []
-var R = 0
-
-// The following Regular Expressions can be used for tokenizing,
-// validating, and parsing SemVer version strings.
-
-// ## Numeric Identifier
-// A single `0`, or a non-zero digit followed by zero or more digits.
-
-var NUMERICIDENTIFIER = R++
-src[NUMERICIDENTIFIER] = '0|[1-9]\\d*'
-var NUMERICIDENTIFIERLOOSE = R++
-src[NUMERICIDENTIFIERLOOSE] = '[0-9]+'
-
-// ## Non-numeric Identifier
-// Zero or more digits, followed by a letter or hyphen, and then zero or
-// more letters, digits, or hyphens.
-
-var NONNUMERICIDENTIFIER = R++
-src[NONNUMERICIDENTIFIER] = '\\d*[a-zA-Z-][a-zA-Z0-9-]*'
-
-// ## Main Version
-// Three dot-separated numeric identifiers.
-
-var MAINVERSION = R++
-src[MAINVERSION] = '(' + src[NUMERICIDENTIFIER] + ')\\.' +
-                   '(' + src[NUMERICIDENTIFIER] + ')\\.' +
-                   '(' + src[NUMERICIDENTIFIER] + ')'
-
-var MAINVERSIONLOOSE = R++
-src[MAINVERSIONLOOSE] = '(' + src[NUMERICIDENTIFIERLOOSE] + ')\\.' +
-                        '(' + src[NUMERICIDENTIFIERLOOSE] + ')\\.' +
-                        '(' + src[NUMERICIDENTIFIERLOOSE] + ')'
-
-// ## Pre-release Version Identifier
-// A numeric identifier, or a non-numeric identifier.
-
-var PRERELEASEIDENTIFIER = R++
-src[PRERELEASEIDENTIFIER] = '(?:' + src[NUMERICIDENTIFIER] +
-                            '|' + src[NONNUMERICIDENTIFIER] + ')'
-
-var PRERELEASEIDENTIFIERLOOSE = R++
-src[PRERELEASEIDENTIFIERLOOSE] = '(?:' + src[NUMERICIDENTIFIERLOOSE] +
-                                 '|' + src[NONNUMERICIDENTIFIER] + ')'
-
-// ## Pre-release Version
-// Hyphen, followed by one or more dot-separated pre-release version
-// identifiers.
-
-var PRERELEASE = R++
-src[PRERELEASE] = '(?:-(' + src[PRERELEASEIDENTIFIER] +
-                  '(?:\\.' + src[PRERELEASEIDENTIFIER] + ')*))'
-
-var PRERELEASELOOSE = R++
-src[PRERELEASELOOSE] = '(?:-?(' + src[PRERELEASEIDENTIFIERLOOSE] +
-                       '(?:\\.' + src[PRERELEASEIDENTIFIERLOOSE] + ')*))'
-
-// ## Build Metadata Identifier
-// Any combination of digits, letters, or hyphens.
-
-var BUILDIDENTIFIER = R++
-src[BUILDIDENTIFIER] = '[0-9A-Za-z-]+'
-
-// ## Build Metadata
-// Plus sign, followed by one or more period-separated build metadata
-// identifiers.
-
-var BUILD = R++
-src[BUILD] = '(?:\\+(' + src[BUILDIDENTIFIER] +
-             '(?:\\.' + src[BUILDIDENTIFIER] + ')*))'
-
-// ## Full Version String
-// A main version, followed optionally by a pre-release version and
-// build metadata.
-
-// Note that the only major, minor, patch, and pre-release sections of
-// the version string are capturing groups.  The build metadata is not a
-// capturing group, because it should not ever be used in version
-// comparison.
-
-var FULL = R++
-var FULLPLAIN = 'v?' + src[MAINVERSION] +
-                src[PRERELEASE] + '?' +
-                src[BUILD] + '?'
-
-src[FULL] = '^' + FULLPLAIN + '$'
-
-// like full, but allows v1.2.3 and =1.2.3, which people do sometimes.
-// also, 1.0.0alpha1 (prerelease without the hyphen) which is pretty
-// common in the npm registry.
-var LOOSEPLAIN = '[v=\\s]*' + src[MAINVERSIONLOOSE] +
-                 src[PRERELEASELOOSE] + '?' +
-                 src[BUILD] + '?'
-
-var LOOSE = R++
-src[LOOSE] = '^' + LOOSEPLAIN + '$'
-
-var GTLT = R++
-src[GTLT] = '((?:<|>)?=?)'
-
-// Something like "2.*" or "1.2.x".
-// Note that "x.x" is a valid xRange identifer, meaning "any version"
-// Only the first item is strictly required.
-var XRANGEIDENTIFIERLOOSE = R++
-src[XRANGEIDENTIFIERLOOSE] = src[NUMERICIDENTIFIERLOOSE] + '|x|X|\\*'
-var XRANGEIDENTIFIER = R++
-src[XRANGEIDENTIFIER] = src[NUMERICIDENTIFIER] + '|x|X|\\*'
-
-var XRANGEPLAIN = R++
-src[XRANGEPLAIN] = '[v=\\s]*(' + src[XRANGEIDENTIFIER] + ')' +
-                   '(?:\\.(' + src[XRANGEIDENTIFIER] + ')' +
-                   '(?:\\.(' + src[XRANGEIDENTIFIER] + ')' +
-                   '(?:' + src[PRERELEASE] + ')?' +
-                   src[BUILD] + '?' +
-                   ')?)?'
-
-var XRANGEPLAINLOOSE = R++
-src[XRANGEPLAINLOOSE] = '[v=\\s]*(' + src[XRANGEIDENTIFIERLOOSE] + ')' +
-                        '(?:\\.(' + src[XRANGEIDENTIFIERLOOSE] + ')' +
-                        '(?:\\.(' + src[XRANGEIDENTIFIERLOOSE] + ')' +
-                        '(?:' + src[PRERELEASELOOSE] + ')?' +
-                        src[BUILD] + '?' +
-                        ')?)?'
-
-var XRANGE = R++
-src[XRANGE] = '^' + src[GTLT] + '\\s*' + src[XRANGEPLAIN] + '$'
-var XRANGELOOSE = R++
-src[XRANGELOOSE] = '^' + src[GTLT] + '\\s*' + src[XRANGEPLAINLOOSE] + '$'
-
-// Coercion.
-// Extract anything that could conceivably be a part of a valid semver
-var COERCE = R++
-src[COERCE] = '(?:^|[^\\d])' +
-              '(\\d{1,' + MAX_SAFE_COMPONENT_LENGTH + '})' +
-              '(?:\\.(\\d{1,' + MAX_SAFE_COMPONENT_LENGTH + '}))?' +
-              '(?:\\.(\\d{1,' + MAX_SAFE_COMPONENT_LENGTH + '}))?' +
-              '(?:$|[^\\d])'
-
-// Tilde ranges.
-// Meaning is "reasonably at or greater than"
-var LONETILDE = R++
-src[LONETILDE] = '(?:~>?)'
-
-var TILDETRIM = R++
-src[TILDETRIM] = '(\\s*)' + src[LONETILDE] + '\\s+'
-re[TILDETRIM] = new RegExp(src[TILDETRIM], 'g')
-var tildeTrimReplace = '$1~'
-
-var TILDE = R++
-src[TILDE] = '^' + src[LONETILDE] + src[XRANGEPLAIN] + '$'
-var TILDELOOSE = R++
-src[TILDELOOSE] = '^' + src[LONETILDE] + src[XRANGEPLAINLOOSE] + '$'
-
-// Caret ranges.
-// Meaning is "at least and backwards compatible with"
-var LONECARET = R++
-src[LONECARET] = '(?:\\^)'
-
-var CARETTRIM = R++
-src[CARETTRIM] = '(\\s*)' + src[LONECARET] + '\\s+'
-re[CARETTRIM] = new RegExp(src[CARETTRIM], 'g')
-var caretTrimReplace = '$1^'
-
-var CARET = R++
-src[CARET] = '^' + src[LONECARET] + src[XRANGEPLAIN] + '$'
-var CARETLOOSE = R++
-src[CARETLOOSE] = '^' + src[LONECARET] + src[XRANGEPLAINLOOSE] + '$'
-
-// A simple gt/lt/eq thing, or just "" to indicate "any version"
-var COMPARATORLOOSE = R++
-src[COMPARATORLOOSE] = '^' + src[GTLT] + '\\s*(' + LOOSEPLAIN + ')$|^$'
-var COMPARATOR = R++
-src[COMPARATOR] = '^' + src[GTLT] + '\\s*(' + FULLPLAIN + ')$|^$'
-
-// An expression to strip any whitespace between the gtlt and the thing
-// it modifies, so that `> 1.2.3` ==> `>1.2.3`
-var COMPARATORTRIM = R++
-src[COMPARATORTRIM] = '(\\s*)' + src[GTLT] +
-                      '\\s*(' + LOOSEPLAIN + '|' + src[XRANGEPLAIN] + ')'
-
-// this one has to use the /g flag
-re[COMPARATORTRIM] = new RegExp(src[COMPARATORTRIM], 'g')
-var comparatorTrimReplace = '$1$2$3'
-
-// Something like `1.2.3 - 1.2.4`
-// Note that these all use the loose form, because they'll be
-// checked against either the strict or loose comparator form
-// later.
-var HYPHENRANGE = R++
-src[HYPHENRANGE] = '^\\s*(' + src[XRANGEPLAIN] + ')' +
-                   '\\s+-\\s+' +
-                   '(' + src[XRANGEPLAIN] + ')' +
-                   '\\s*$'
-
-var HYPHENRANGELOOSE = R++
-src[HYPHENRANGELOOSE] = '^\\s*(' + src[XRANGEPLAINLOOSE] + ')' +
-                        '\\s+-\\s+' +
-                        '(' + src[XRANGEPLAINLOOSE] + ')' +
-                        '\\s*$'
-
-// Star ranges basically just allow anything at all.
-var STAR = R++
-src[STAR] = '(<|>)?=?\\s*\\*'
-
-// Compile to actual regexp objects.
-// All are flag-free, unless they were created above with a flag.
-for (var i = 0; i < R; i++) {
-  debug(i, src[i])
-  if (!re[i]) {
-    re[i] = new RegExp(src[i])
-  }
-}
-
-exports.parse = parse
-function parse (version, options) {
-  if (!options || typeof options !== 'object') {
-    options = {
-      loose: !!options,
-      includePrerelease: false
-    }
-  }
-
-  if (version instanceof SemVer) {
-    return version
-  }
-
-  if (typeof version !== 'string') {
-    return null
-  }
-
-  if (version.length > MAX_LENGTH) {
-    return null
-  }
-
-  var r = options.loose ? re[LOOSE] : re[FULL]
-  if (!r.test(version)) {
-    return null
-  }
-
-  try {
-    return new SemVer(version, options)
-  } catch (er) {
-    return null
-  }
-}
-
-exports.valid = valid
-function valid (version, options) {
-  var v = parse(version, options)
-  return v ? v.version : null
-}
-
-exports.clean = clean
-function clean (version, options) {
-  var s = parse(version.trim().replace(/^[=v]+/, ''), options)
-  return s ? s.version : null
-}
-
-exports.SemVer = SemVer
-
-function SemVer (version, options) {
-  if (!options || typeof options !== 'object') {
-    options = {
-      loose: !!options,
-      includePrerelease: false
-    }
-  }
-  if (version instanceof SemVer) {
-    if (version.loose === options.loose) {
-      return version
-    } else {
-      version = version.version
-    }
-  } else if (typeof version !== 'string') {
-    throw new TypeError('Invalid Version: ' + version)
-  }
-
-  if (version.length > MAX_LENGTH) {
-    throw new TypeError('version is longer than ' + MAX_LENGTH + ' characters')
-  }
-
-  if (!(this instanceof SemVer)) {
-    return new SemVer(version, options)
-  }
-
-  debug('SemVer', version, options)
-  this.options = options
-  this.loose = !!options.loose
-
-  var m = version.trim().match(options.loose ? re[LOOSE] : re[FULL])
-
-  if (!m) {
-    throw new TypeError('Invalid Version: ' + version)
-  }
-
-  this.raw = version
-
-  // these are actually numbers
-  this.major = +m[1]
-  this.minor = +m[2]
-  this.patch = +m[3]
-
-  if (this.major > MAX_SAFE_INTEGER || this.major < 0) {
-    throw new TypeError('Invalid major version')
-  }
-
-  if (this.minor > MAX_SAFE_INTEGER || this.minor < 0) {
-    throw new TypeError('Invalid minor version')
-  }
-
-  if (this.patch > MAX_SAFE_INTEGER || this.patch < 0) {
-    throw new TypeError('Invalid patch version')
-  }
-
-  // numberify any prerelease numeric ids
-  if (!m[4]) {
-    this.prerelease = []
-  } else {
-    this.prerelease = m[4].split('.').map(function (id) {
-      if (/^[0-9]+$/.test(id)) {
-        var num = +id
-        if (num >= 0 && num < MAX_SAFE_INTEGER) {
-          return num
-        }
-      }
-      return id
-    })
-  }
-
-  this.build = m[5] ? m[5].split('.') : []
-  this.format()
-}
-
-SemVer.prototype.format = function () {
-  this.version = this.major + '.' + this.minor + '.' + this.patch
-  if (this.prerelease.length) {
-    this.version += '-' + this.prerelease.join('.')
-  }
-  return this.version
-}
-
-SemVer.prototype.toString = function () {
-  return this.version
-}
-
-SemVer.prototype.compare = function (other) {
-  debug('SemVer.compare', this.version, this.options, other)
-  if (!(other instanceof SemVer)) {
-    other = new SemVer(other, this.options)
-  }
-
-  return this.compareMain(other) || this.comparePre(other)
-}
-
-SemVer.prototype.compareMain = function (other) {
-  if (!(other instanceof SemVer)) {
-    other = new SemVer(other, this.options)
-  }
-
-  return compareIdentifiers(this.major, other.major) ||
-         compareIdentifiers(this.minor, other.minor) ||
-         compareIdentifiers(this.patch, other.patch)
-}
-
-SemVer.prototype.comparePre = function (other) {
-  if (!(other instanceof SemVer)) {
-    other = new SemVer(other, this.options)
-  }
-
-  // NOT having a prerelease is > having one
-  if (this.prerelease.length && !other.prerelease.length) {
-    return -1
-  } else if (!this.prerelease.length && other.prerelease.length) {
-    return 1
-  } else if (!this.prerelease.length && !other.prerelease.length) {
-    return 0
-  }
-
-  var i = 0
-  do {
-    var a = this.prerelease[i]
-    var b = other.prerelease[i]
-    debug('prerelease compare', i, a, b)
-    if (a === undefined && b === undefined) {
-      return 0
-    } else if (b === undefined) {
-      return 1
-    } else if (a === undefined) {
-      return -1
-    } else if (a === b) {
-      continue
-    } else {
-      return compareIdentifiers(a, b)
-    }
-  } while (++i)
-}
-
-// preminor will bump the version up to the next minor release, and immediately
-// down to pre-release. premajor and prepatch work the same way.
-SemVer.prototype.inc = function (release, identifier) {
-  switch (release) {
-    case 'premajor':
-      this.prerelease.length = 0
-      this.patch = 0
-      this.minor = 0
-      this.major++
-      this.inc('pre', identifier)
-      break
-    case 'preminor':
-      this.prerelease.length = 0
-      this.patch = 0
-      this.minor++
-      this.inc('pre', identifier)
-      break
-    case 'prepatch':
-      // If this is already a prerelease, it will bump to the next version
-      // drop any prereleases that might already exist, since they are not
-      // relevant at this point.
-      this.prerelease.length = 0
-      this.inc('patch', identifier)
-      this.inc('pre', identifier)
-      break
-    // If the input is a non-prerelease version, this acts the same as
-    // prepatch.
-    case 'prerelease':
-      if (this.prerelease.length === 0) {
-        this.inc('patch', identifier)
-      }
-      this.inc('pre', identifier)
-      break
-
-    case 'major':
-      // If this is a pre-major version, bump up to the same major version.
-      // Otherwise increment major.
-      // 1.0.0-5 bumps to 1.0.0
-      // 1.1.0 bumps to 2.0.0
-      if (this.minor !== 0 ||
-          this.patch !== 0 ||
-          this.prerelease.length === 0) {
-        this.major++
-      }
-      this.minor = 0
-      this.patch = 0
-      this.prerelease = []
-      break
-    case 'minor':
-      // If this is a pre-minor version, bump up to the same minor version.
-      // Otherwise increment minor.
-      // 1.2.0-5 bumps to 1.2.0
-      // 1.2.1 bumps to 1.3.0
-      if (this.patch !== 0 || this.prerelease.length === 0) {
-        this.minor++
-      }
-      this.patch = 0
-      this.prerelease = []
-      break
-    case 'patch':
-      // If this is not a pre-release version, it will increment the patch.
-      // If it is a pre-release it will bump up to the same patch version.
-      // 1.2.0-5 patches to 1.2.0
-      // 1.2.0 patches to 1.2.1
-      if (this.prerelease.length === 0) {
-        this.patch++
-      }
-      this.prerelease = []
-      break
-    // This probably shouldn't be used publicly.
-    // 1.0.0 "pre" would become 1.0.0-0 which is the wrong direction.
-    case 'pre':
-      if (this.prerelease.length === 0) {
-        this.prerelease = [0]
-      } else {
-        var i = this.prerelease.length
-        while (--i >= 0) {
-          if (typeof this.prerelease[i] === 'number') {
-            this.prerelease[i]++
-            i = -2
-          }
-        }
-        if (i === -1) {
-          // didn't increment anything
-          this.prerelease.push(0)
-        }
-      }
-      if (identifier) {
-        // 1.2.0-beta.1 bumps to 1.2.0-beta.2,
-        // 1.2.0-beta.fooblz or 1.2.0-beta bumps to 1.2.0-beta.0
-        if (this.prerelease[0] === identifier) {
-          if (isNaN(this.prerelease[1])) {
-            this.prerelease = [identifier, 0]
-          }
-        } else {
-          this.prerelease = [identifier, 0]
-        }
-      }
-      break
-
-    default:
-      throw new Error('invalid increment argument: ' + release)
-  }
-  this.format()
-  this.raw = this.version
-  return this
-}
-
-exports.inc = inc
-function inc (version, release, loose, identifier) {
-  if (typeof (loose) === 'string') {
-    identifier = loose
-    loose = undefined
-  }
-
-  try {
-    return new SemVer(version, loose).inc(release, identifier).version
-  } catch (er) {
-    return null
-  }
-}
-
-exports.diff = diff
-function diff (version1, version2) {
-  if (eq(version1, version2)) {
-    return null
-  } else {
-    var v1 = parse(version1)
-    var v2 = parse(version2)
-    var prefix = ''
-    if (v1.prerelease.length || v2.prerelease.length) {
-      prefix = 'pre'
-      var defaultResult = 'prerelease'
-    }
-    for (var key in v1) {
-      if (key === 'major' || key === 'minor' || key === 'patch') {
-        if (v1[key] !== v2[key]) {
-          return prefix + key
-        }
-      }
-    }
-    return defaultResult // may be undefined
-  }
-}
-
-exports.compareIdentifiers = compareIdentifiers
-
-var numeric = /^[0-9]+$/
-function compareIdentifiers (a, b) {
-  var anum = numeric.test(a)
-  var bnum = numeric.test(b)
-
-  if (anum && bnum) {
-    a = +a
-    b = +b
-  }
-
-  return a === b ? 0
-    : (anum && !bnum) ? -1
-    : (bnum && !anum) ? 1
-    : a < b ? -1
-    : 1
-}
-
-exports.rcompareIdentifiers = rcompareIdentifiers
-function rcompareIdentifiers (a, b) {
-  return compareIdentifiers(b, a)
-}
-
-exports.major = major
-function major (a, loose) {
-  return new SemVer(a, loose).major
-}
-
-exports.minor = minor
-function minor (a, loose) {
-  return new SemVer(a, loose).minor
-}
-
-exports.patch = patch
-function patch (a, loose) {
-  return new SemVer(a, loose).patch
-}
-
-exports.compare = compare
-function compare (a, b, loose) {
-  return new SemVer(a, loose).compare(new SemVer(b, loose))
-}
-
-exports.compareLoose = compareLoose
-function compareLoose (a, b) {
-  return compare(a, b, true)
-}
-
-exports.rcompare = rcompare
-function rcompare (a, b, loose) {
-  return compare(b, a, loose)
-}
-
-exports.sort = sort
-function sort (list, loose) {
-  return list.sort(function (a, b) {
-    return exports.compare(a, b, loose)
-  })
-}
-
-exports.rsort = rsort
-function rsort (list, loose) {
-  return list.sort(function (a, b) {
-    return exports.rcompare(a, b, loose)
-  })
-}
-
-exports.gt = gt
-function gt (a, b, loose) {
-  return compare(a, b, loose) > 0
-}
-
-exports.lt = lt
-function lt (a, b, loose) {
-  return compare(a, b, loose) < 0
-}
-
-exports.eq = eq
-function eq (a, b, loose) {
-  return compare(a, b, loose) === 0
-}
-
-exports.neq = neq
-function neq (a, b, loose) {
-  return compare(a, b, loose) !== 0
-}
-
-exports.gte = gte
-function gte (a, b, loose) {
-  return compare(a, b, loose) >= 0
-}
-
-exports.lte = lte
-function lte (a, b, loose) {
-  return compare(a, b, loose) <= 0
-}
-
-exports.cmp = cmp
-function cmp (a, op, b, loose) {
-  switch (op) {
-    case '===':
-      if (typeof a === 'object')
-        a = a.version
-      if (typeof b === 'object')
-        b = b.version
-      return a === b
-
-    case '!==':
-      if (typeof a === 'object')
-        a = a.version
-      if (typeof b === 'object')
-        b = b.version
-      return a !== b
-
-    case '':
-    case '=':
-    case '==':
-      return eq(a, b, loose)
-
-    case '!=':
-      return neq(a, b, loose)
-
-    case '>':
-      return gt(a, b, loose)
-
-    case '>=':
-      return gte(a, b, loose)
-
-    case '<':
-      return lt(a, b, loose)
-
-    case '<=':
-      return lte(a, b, loose)
-
-    default:
-      throw new TypeError('Invalid operator: ' + op)
-  }
-}
-
-exports.Comparator = Comparator
-function Comparator (comp, options) {
-  if (!options || typeof options !== 'object') {
-    options = {
-      loose: !!options,
-      includePrerelease: false
-    }
-  }
-
-  if (comp instanceof Comparator) {
-    if (comp.loose === !!options.loose) {
-      return comp
-    } else {
-      comp = comp.value
-    }
-  }
-
-  if (!(this instanceof Comparator)) {
-    return new Comparator(comp, options)
-  }
-
-  debug('comparator', comp, options)
-  this.options = options
-  this.loose = !!options.loose
-  this.parse(comp)
-
-  if (this.semver === ANY) {
-    this.value = ''
-  } else {
-    this.value = this.operator + this.semver.version
-  }
-
-  debug('comp', this)
-}
-
-var ANY = {}
-Comparator.prototype.parse = function (comp) {
-  var r = this.options.loose ? re[COMPARATORLOOSE] : re[COMPARATOR]
-  var m = comp.match(r)
-
-  if (!m) {
-    throw new TypeError('Invalid comparator: ' + comp)
-  }
-
-  this.operator = m[1]
-  if (this.operator === '=') {
-    this.operator = ''
-  }
-
-  // if it literally is just '>' or '' then allow anything.
-  if (!m[2]) {
-    this.semver = ANY
-  } else {
-    this.semver = new SemVer(m[2], this.options.loose)
-  }
-}
-
-Comparator.prototype.toString = function () {
-  return this.value
-}
-
-Comparator.prototype.test = function (version) {
-  debug('Comparator.test', version, this.options.loose)
-
-  if (this.semver === ANY) {
-    return true
-  }
-
-  if (typeof version === 'string') {
-    version = new SemVer(version, this.options)
-  }
-
-  return cmp(version, this.operator, this.semver, this.options)
-}
-
-Comparator.prototype.intersects = function (comp, options) {
-  if (!(comp instanceof Comparator)) {
-    throw new TypeError('a Comparator is required')
-  }
-
-  if (!options || typeof options !== 'object') {
-    options = {
-      loose: !!options,
-      includePrerelease: false
-    }
-  }
-
-  var rangeTmp
-
-  if (this.operator === '') {
-    rangeTmp = new Range(comp.value, options)
-    return satisfies(this.value, rangeTmp, options)
-  } else if (comp.operator === '') {
-    rangeTmp = new Range(this.value, options)
-    return satisfies(comp.semver, rangeTmp, options)
-  }
-
-  var sameDirectionIncreasing =
-    (this.operator === '>=' || this.operator === '>') &&
-    (comp.operator === '>=' || comp.operator === '>')
-  var sameDirectionDecreasing =
-    (this.operator === '<=' || this.operator === '<') &&
-    (comp.operator === '<=' || comp.operator === '<')
-  var sameSemVer = this.semver.version === comp.semver.version
-  var differentDirectionsInclusive =
-    (this.operator === '>=' || this.operator === '<=') &&
-    (comp.operator === '>=' || comp.operator === '<=')
-  var oppositeDirectionsLessThan =
-    cmp(this.semver, '<', comp.semver, options) &&
-    ((this.operator === '>=' || this.operator === '>') &&
-    (comp.operator === '<=' || comp.operator === '<'))
-  var oppositeDirectionsGreaterThan =
-    cmp(this.semver, '>', comp.semver, options) &&
-    ((this.operator === '<=' || this.operator === '<') &&
-    (comp.operator === '>=' || comp.operator === '>'))
-
-  return sameDirectionIncreasing || sameDirectionDecreasing ||
-    (sameSemVer && differentDirectionsInclusive) ||
-    oppositeDirectionsLessThan || oppositeDirectionsGreaterThan
-}
-
-exports.Range = Range
-function Range (range, options) {
-  if (!options || typeof options !== 'object') {
-    options = {
-      loose: !!options,
-      includePrerelease: false
-    }
-  }
-
-  if (range instanceof Range) {
-    if (range.loose === !!options.loose &&
-        range.includePrerelease === !!options.includePrerelease) {
-      return range
-    } else {
-      return new Range(range.raw, options)
-    }
-  }
-
-  if (range instanceof Comparator) {
-    return new Range(range.value, options)
-  }
-
-  if (!(this instanceof Range)) {
-    return new Range(range, options)
-  }
-
-  this.options = options
-  this.loose = !!options.loose
-  this.includePrerelease = !!options.includePrerelease
-
-  // First, split based on boolean or ||
-  this.raw = range
-  this.set = range.split(/\s*\|\|\s*/).map(function (range) {
-    return this.parseRange(range.trim())
-  }, this).filter(function (c) {
-    // throw out any that are not relevant for whatever reason
-    return c.length
-  })
-
-  if (!this.set.length) {
-    throw new TypeError('Invalid SemVer Range: ' + range)
-  }
-
-  this.format()
-}
-
-Range.prototype.format = function () {
-  this.range = this.set.map(function (comps) {
-    return comps.join(' ').trim()
-  }).join('||').trim()
-  return this.range
-}
-
-Range.prototype.toString = function () {
-  return this.range
-}
-
-Range.prototype.parseRange = function (range) {
-  var loose = this.options.loose
-  range = range.trim()
-  // `1.2.3 - 1.2.4` => `>=1.2.3 <=1.2.4`
-  var hr = loose ? re[HYPHENRANGELOOSE] : re[HYPHENRANGE]
-  range = range.replace(hr, hyphenReplace)
-  debug('hyphen replace', range)
-  // `> 1.2.3 < 1.2.5` => `>1.2.3 <1.2.5`
-  range = range.replace(re[COMPARATORTRIM], comparatorTrimReplace)
-  debug('comparator trim', range, re[COMPARATORTRIM])
-
-  // `~ 1.2.3` => `~1.2.3`
-  range = range.replace(re[TILDETRIM], tildeTrimReplace)
-
-  // `^ 1.2.3` => `^1.2.3`
-  range = range.replace(re[CARETTRIM], caretTrimReplace)
-
-  // normalize spaces
-  range = range.split(/\s+/).join(' ')
-
-  // At this point, the range is completely trimmed and
-  // ready to be split into comparators.
-
-  var compRe = loose ? re[COMPARATORLOOSE] : re[COMPARATOR]
-  var set = range.split(' ').map(function (comp) {
-    return parseComparator(comp, this.options)
-  }, this).join(' ').split(/\s+/)
-  if (this.options.loose) {
-    // in loose mode, throw out any that are not valid comparators
-    set = set.filter(function (comp) {
-      return !!comp.match(compRe)
-    })
-  }
-  set = set.map(function (comp) {
-    return new Comparator(comp, this.options)
-  }, this)
-
-  return set
-}
-
-Range.prototype.intersects = function (range, options) {
-  if (!(range instanceof Range)) {
-    throw new TypeError('a Range is required')
-  }
-
-  return this.set.some(function (thisComparators) {
-    return thisComparators.every(function (thisComparator) {
-      return range.set.some(function (rangeComparators) {
-        return rangeComparators.every(function (rangeComparator) {
-          return thisComparator.intersects(rangeComparator, options)
-        })
-      })
-    })
-  })
-}
-
-// Mostly just for testing and legacy API reasons
-exports.toComparators = toComparators
-function toComparators (range, options) {
-  return new Range(range, options).set.map(function (comp) {
-    return comp.map(function (c) {
-      return c.value
-    }).join(' ').trim().split(' ')
-  })
-}
-
-// comprised of xranges, tildes, stars, and gtlt's at this point.
-// already replaced the hyphen ranges
-// turn into a set of JUST comparators.
-function parseComparator (comp, options) {
-  debug('comp', comp, options)
-  comp = replaceCarets(comp, options)
-  debug('caret', comp)
-  comp = replaceTildes(comp, options)
-  debug('tildes', comp)
-  comp = replaceXRanges(comp, options)
-  debug('xrange', comp)
-  comp = replaceStars(comp, options)
-  debug('stars', comp)
-  return comp
-}
-
-function isX (id) {
-  return !id || id.toLowerCase() === 'x' || id === '*'
-}
-
-// ~, ~> --> * (any, kinda silly)
-// ~2, ~2.x, ~2.x.x, ~>2, ~>2.x ~>2.x.x --> >=2.0.0 <3.0.0
-// ~2.0, ~2.0.x, ~>2.0, ~>2.0.x --> >=2.0.0 <2.1.0
-// ~1.2, ~1.2.x, ~>1.2, ~>1.2.x --> >=1.2.0 <1.3.0
-// ~1.2.3, ~>1.2.3 --> >=1.2.3 <1.3.0
-// ~1.2.0, ~>1.2.0 --> >=1.2.0 <1.3.0
-function replaceTildes (comp, options) {
-  return comp.trim().split(/\s+/).map(function (comp) {
-    return replaceTilde(comp, options)
-  }).join(' ')
-}
-
-function replaceTilde (comp, options) {
-  var r = options.loose ? re[TILDELOOSE] : re[TILDE]
-  return comp.replace(r, function (_, M, m, p, pr) {
-    debug('tilde', comp, _, M, m, p, pr)
-    var ret
-
-    if (isX(M)) {
-      ret = ''
-    } else if (isX(m)) {
-      ret = '>=' + M + '.0.0 <' + (+M + 1) + '.0.0'
-    } else if (isX(p)) {
-      // ~1.2 == >=1.2.0 <1.3.0
-      ret = '>=' + M + '.' + m + '.0 <' + M + '.' + (+m + 1) + '.0'
-    } else if (pr) {
-      debug('replaceTilde pr', pr)
-      ret = '>=' + M + '.' + m + '.' + p + '-' + pr +
-            ' <' + M + '.' + (+m + 1) + '.0'
-    } else {
-      // ~1.2.3 == >=1.2.3 <1.3.0
-      ret = '>=' + M + '.' + m + '.' + p +
-            ' <' + M + '.' + (+m + 1) + '.0'
-    }
-
-    debug('tilde return', ret)
-    return ret
-  })
-}
-
-// ^ --> * (any, kinda silly)
-// ^2, ^2.x, ^2.x.x --> >=2.0.0 <3.0.0
-// ^2.0, ^2.0.x --> >=2.0.0 <3.0.0
-// ^1.2, ^1.2.x --> >=1.2.0 <2.0.0
-// ^1.2.3 --> >=1.2.3 <2.0.0
-// ^1.2.0 --> >=1.2.0 <2.0.0
-function replaceCarets (comp, options) {
-  return comp.trim().split(/\s+/).map(function (comp) {
-    return replaceCaret(comp, options)
-  }).join(' ')
-}
-
-function replaceCaret (comp, options) {
-  debug('caret', comp, options)
-  var r = options.loose ? re[CARETLOOSE] : re[CARET]
-  return comp.replace(r, function (_, M, m, p, pr) {
-    debug('caret', comp, _, M, m, p, pr)
-    var ret
-
-    if (isX(M)) {
-      ret = ''
-    } else if (isX(m)) {
-      ret = '>=' + M + '.0.0 <' + (+M + 1) + '.0.0'
-    } else if (isX(p)) {
-      if (M === '0') {
-        ret = '>=' + M + '.' + m + '.0 <' + M + '.' + (+m + 1) + '.0'
-      } else {
-        ret = '>=' + M + '.' + m + '.0 <' + (+M + 1) + '.0.0'
-      }
-    } else if (pr) {
-      debug('replaceCaret pr', pr)
-      if (M === '0') {
-        if (m === '0') {
-          ret = '>=' + M + '.' + m + '.' + p + '-' + pr +
-                ' <' + M + '.' + m + '.' + (+p + 1)
-        } else {
-          ret = '>=' + M + '.' + m + '.' + p + '-' + pr +
-                ' <' + M + '.' + (+m + 1) + '.0'
-        }
-      } else {
-        ret = '>=' + M + '.' + m + '.' + p + '-' + pr +
-              ' <' + (+M + 1) + '.0.0'
-      }
-    } else {
-      debug('no pr')
-      if (M === '0') {
-        if (m === '0') {
-          ret = '>=' + M + '.' + m + '.' + p +
-                ' <' + M + '.' + m + '.' + (+p + 1)
-        } else {
-          ret = '>=' + M + '.' + m + '.' + p +
-                ' <' + M + '.' + (+m + 1) + '.0'
-        }
-      } else {
-        ret = '>=' + M + '.' + m + '.' + p +
-              ' <' + (+M + 1) + '.0.0'
-      }
-    }
-
-    debug('caret return', ret)
-    return ret
-  })
-}
-
-function replaceXRanges (comp, options) {
-  debug('replaceXRanges', comp, options)
-  return comp.split(/\s+/).map(function (comp) {
-    return replaceXRange(comp, options)
-  }).join(' ')
-}
-
-function replaceXRange (comp, options) {
-  comp = comp.trim()
-  var r = options.loose ? re[XRANGELOOSE] : re[XRANGE]
-  return comp.replace(r, function (ret, gtlt, M, m, p, pr) {
-    debug('xRange', comp, ret, gtlt, M, m, p, pr)
-    var xM = isX(M)
-    var xm = xM || isX(m)
-    var xp = xm || isX(p)
-    var anyX = xp
-
-    if (gtlt === '=' && anyX) {
-      gtlt = ''
-    }
-
-    if (xM) {
-      if (gtlt === '>' || gtlt === '<') {
-        // nothing is allowed
-        ret = '<0.0.0'
-      } else {
-        // nothing is forbidden
-        ret = '*'
-      }
-    } else if (gtlt && anyX) {
-      // we know patch is an x, because we have any x at all.
-      // replace X with 0
-      if (xm) {
-        m = 0
-      }
-      p = 0
-
-      if (gtlt === '>') {
-        // >1 => >=2.0.0
-        // >1.2 => >=1.3.0
-        // >1.2.3 => >= 1.2.4
-        gtlt = '>='
-        if (xm) {
-          M = +M + 1
-          m = 0
-          p = 0
-        } else {
-          m = +m + 1
-          p = 0
-        }
-      } else if (gtlt === '<=') {
-        // <=0.7.x is actually <0.8.0, since any 0.7.x should
-        // pass.  Similarly, <=7.x is actually <8.0.0, etc.
-        gtlt = '<'
-        if (xm) {
-          M = +M + 1
-        } else {
-          m = +m + 1
-        }
-      }
-
-      ret = gtlt + M + '.' + m + '.' + p
-    } else if (xm) {
-      ret = '>=' + M + '.0.0 <' + (+M + 1) + '.0.0'
-    } else if (xp) {
-      ret = '>=' + M + '.' + m + '.0 <' + M + '.' + (+m + 1) + '.0'
-    }
-
-    debug('xRange return', ret)
-
-    return ret
-  })
-}
-
-// Because * is AND-ed with everything else in the comparator,
-// and '' means "any version", just remove the *s entirely.
-function replaceStars (comp, options) {
-  debug('replaceStars', comp, options)
-  // Looseness is ignored here.  star is always as loose as it gets!
-  return comp.trim().replace(re[STAR], '')
-}
-
-// This function is passed to string.replace(re[HYPHENRANGE])
-// M, m, patch, prerelease, build
-// 1.2 - 3.4.5 => >=1.2.0 <=3.4.5
-// 1.2.3 - 3.4 => >=1.2.0 <3.5.0 Any 3.4.x will do
-// 1.2 - 3.4 => >=1.2.0 <3.5.0
-function hyphenReplace ($0,
-  from, fM, fm, fp, fpr, fb,
-  to, tM, tm, tp, tpr, tb) {
-  if (isX(fM)) {
-    from = ''
-  } else if (isX(fm)) {
-    from = '>=' + fM + '.0.0'
-  } else if (isX(fp)) {
-    from = '>=' + fM + '.' + fm + '.0'
-  } else {
-    from = '>=' + from
-  }
-
-  if (isX(tM)) {
-    to = ''
-  } else if (isX(tm)) {
-    to = '<' + (+tM + 1) + '.0.0'
-  } else if (isX(tp)) {
-    to = '<' + tM + '.' + (+tm + 1) + '.0'
-  } else if (tpr) {
-    to = '<=' + tM + '.' + tm + '.' + tp + '-' + tpr
-  } else {
-    to = '<=' + to
-  }
-
-  return (from + ' ' + to).trim()
-}
-
-// if ANY of the sets match ALL of its comparators, then pass
-Range.prototype.test = function (version) {
-  if (!version) {
-    return false
-  }
-
-  if (typeof version === 'string') {
-    version = new SemVer(version, this.options)
-  }
-
-  for (var i = 0; i < this.set.length; i++) {
-    if (testSet(this.set[i], version, this.options)) {
-      return true
-    }
-  }
-  return false
-}
-
-function testSet (set, version, options) {
-  for (var i = 0; i < set.length; i++) {
-    if (!set[i].test(version)) {
-      return false
-    }
-  }
-
-  if (version.prerelease.length && !options.includePrerelease) {
-    // Find the set of versions that are allowed to have prereleases
-    // For example, ^1.2.3-pr.1 desugars to >=1.2.3-pr.1 <2.0.0
-    // That should allow `1.2.3-pr.2` to pass.
-    // However, `1.2.4-alpha.notready` should NOT be allowed,
-    // even though it's within the range set by the comparators.
-    for (i = 0; i < set.length; i++) {
-      debug(set[i].semver)
-      if (set[i].semver === ANY) {
-        continue
-      }
-
-      if (set[i].semver.prerelease.length > 0) {
-        var allowed = set[i].semver
-        if (allowed.major === version.major &&
-            allowed.minor === version.minor &&
-            allowed.patch === version.patch) {
-          return true
-        }
-      }
-    }
-
-    // Version has a -pre, but it's not one of the ones we like.
-    return false
-  }
-
-  return true
-}
-
-exports.satisfies = satisfies
-function satisfies (version, range, options) {
-  try {
-    range = new Range(range, options)
-  } catch (er) {
-    return false
-  }
-  return range.test(version)
-}
-
-exports.maxSatisfying = maxSatisfying
-function maxSatisfying (versions, range, options) {
-  var max = null
-  var maxSV = null
-  try {
-    var rangeObj = new Range(range, options)
-  } catch (er) {
-    return null
-  }
-  versions.forEach(function (v) {
-    if (rangeObj.test(v)) {
-      // satisfies(v, range, options)
-      if (!max || maxSV.compare(v) === -1) {
-        // compare(max, v, true)
-        max = v
-        maxSV = new SemVer(max, options)
-      }
-    }
-  })
-  return max
-}
-
-exports.minSatisfying = minSatisfying
-function minSatisfying (versions, range, options) {
-  var min = null
-  var minSV = null
-  try {
-    var rangeObj = new Range(range, options)
-  } catch (er) {
-    return null
-  }
-  versions.forEach(function (v) {
-    if (rangeObj.test(v)) {
-      // satisfies(v, range, options)
-      if (!min || minSV.compare(v) === 1) {
-        // compare(min, v, true)
-        min = v
-        minSV = new SemVer(min, options)
-      }
-    }
-  })
-  return min
-}
-
-exports.minVersion = minVersion
-function minVersion (range, loose) {
-  range = new Range(range, loose)
-
-  var minver = new SemVer('0.0.0')
-  if (range.test(minver)) {
-    return minver
-  }
-
-  minver = new SemVer('0.0.0-0')
-  if (range.test(minver)) {
-    return minver
-  }
-
-  minver = null
-  for (var i = 0; i < range.set.length; ++i) {
-    var comparators = range.set[i]
-
-    comparators.forEach(function (comparator) {
-      // Clone to avoid manipulating the comparator's semver object.
-      var compver = new SemVer(comparator.semver.version)
-      switch (comparator.operator) {
-        case '>':
-          if (compver.prerelease.length === 0) {
-            compver.patch++
-          } else {
-            compver.prerelease.push(0)
-          }
-          compver.raw = compver.format()
-          /* fallthrough */
-        case '':
-        case '>=':
-          if (!minver || gt(minver, compver)) {
-            minver = compver
-          }
-          break
-        case '<':
-        case '<=':
-          /* Ignore maximum versions */
-          break
-        /* istanbul ignore next */
-        default:
-          throw new Error('Unexpected operation: ' + comparator.operator)
-      }
-    })
-  }
-
-  if (minver && range.test(minver)) {
-    return minver
-  }
-
-  return null
-}
-
-exports.validRange = validRange
-function validRange (range, options) {
-  try {
-    // Return '*' instead of '' so that truthiness works.
-    // This will throw if it's invalid anyway
-    return new Range(range, options).range || '*'
-  } catch (er) {
-    return null
-  }
-}
-
-// Determine if version is less than all the versions possible in the range
-exports.ltr = ltr
-function ltr (version, range, options) {
-  return outside(version, range, '<', options)
-}
-
-// Determine if version is greater than all the versions possible in the range.
-exports.gtr = gtr
-function gtr (version, range, options) {
-  return outside(version, range, '>', options)
-}
-
-exports.outside = outside
-function outside (version, range, hilo, options) {
-  version = new SemVer(version, options)
-  range = new Range(range, options)
-
-  var gtfn, ltefn, ltfn, comp, ecomp
-  switch (hilo) {
-    case '>':
-      gtfn = gt
-      ltefn = lte
-      ltfn = lt
-      comp = '>'
-      ecomp = '>='
-      break
-    case '<':
-      gtfn = lt
-      ltefn = gte
-      ltfn = gt
-      comp = '<'
-      ecomp = '<='
-      break
-    default:
-      throw new TypeError('Must provide a hilo val of "<" or ">"')
-  }
-
-  // If it satisifes the range it is not outside
-  if (satisfies(version, range, options)) {
-    return false
-  }
-
-  // From now on, variable terms are as if we're in "gtr" mode.
-  // but note that everything is flipped for the "ltr" function.
-
-  for (var i = 0; i < range.set.length; ++i) {
-    var comparators = range.set[i]
-
-    var high = null
-    var low = null
-
-    comparators.forEach(function (comparator) {
-      if (comparator.semver === ANY) {
-        comparator = new Comparator('>=0.0.0')
-      }
-      high = high || comparator
-      low = low || comparator
-      if (gtfn(comparator.semver, high.semver, options)) {
-        high = comparator
-      } else if (ltfn(comparator.semver, low.semver, options)) {
-        low = comparator
-      }
-    })
-
-    // If the edge version comparator has a operator then our version
-    // isn't outside it
-    if (high.operator === comp || high.operator === ecomp) {
-      return false
-    }
-
-    // If the lowest version comparator has an operator and our version
-    // is less than it then it isn't higher than the range
-    if ((!low.operator || low.operator === comp) &&
-        ltefn(version, low.semver)) {
-      return false
-    } else if (low.operator === ecomp && ltfn(version, low.semver)) {
-      return false
-    }
-  }
-  return true
-}
-
-exports.prerelease = prerelease
-function prerelease (version, options) {
-  var parsed = parse(version, options)
-  return (parsed && parsed.prerelease.length) ? parsed.prerelease : null
-}
-
-exports.intersects = intersects
-function intersects (r1, r2, options) {
-  r1 = new Range(r1, options)
-  r2 = new Range(r2, options)
-  return r1.intersects(r2)
-}
-
-exports.coerce = coerce
-function coerce (version) {
-  if (version instanceof SemVer) {
-    return version
-  }
-
-  if (typeof version !== 'string') {
-    return null
-  }
-
-  var match = version.match(re[COERCE])
-
-  if (match == null) {
-    return null
-  }
-
-  return parse(match[1] +
-    '.' + (match[2] || '0') +
-    '.' + (match[3] || '0'))
-}
-
 
 /***/ }),
 
@@ -8544,113 +7011,10 @@ module.exports = require("events");
 
 /***/ }),
 
-/***/ 621:
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-const path = __webpack_require__(622);
-const pathKey = __webpack_require__(39);
-
-module.exports = opts => {
-	opts = Object.assign({
-		cwd: process.cwd(),
-		path: process.env[pathKey()]
-	}, opts);
-
-	let prev;
-	let pth = path.resolve(opts.cwd);
-	const ret = [];
-
-	while (prev !== pth) {
-		ret.push(path.join(pth, 'node_modules/.bin'));
-		prev = pth;
-		pth = path.resolve(pth, '..');
-	}
-
-	// ensure the running `node` binary is used
-	ret.push(path.dirname(process.execPath));
-
-	return ret.concat(opts.path).join(path.delimiter);
-};
-
-module.exports.env = opts => {
-	opts = Object.assign({
-		env: process.env
-	}, opts);
-
-	const env = Object.assign({}, opts.env);
-	const path = pathKey({env});
-
-	opts.path = env[path];
-	env[path] = module.exports(opts);
-
-	return env;
-};
-
-
-/***/ }),
-
 /***/ 622:
 /***/ (function(module) {
 
 module.exports = require("path");
-
-/***/ }),
-
-/***/ 626:
-/***/ (function(module) {
-
-"use strict";
-
-
-/*!
- * isobject <https://github.com/jonschlinkert/isobject>
- *
- * Copyright (c) 2014-2017, Jon Schlinkert.
- * Released under the MIT License.
- */
-
-function isObject(val) {
-  return val != null && typeof val === 'object' && Array.isArray(val) === false;
-}
-
-/*!
- * is-plain-object <https://github.com/jonschlinkert/is-plain-object>
- *
- * Copyright (c) 2014-2017, Jon Schlinkert.
- * Released under the MIT License.
- */
-
-function isObjectObject(o) {
-  return isObject(o) === true
-    && Object.prototype.toString.call(o) === '[object Object]';
-}
-
-function isPlainObject(o) {
-  var ctor,prot;
-
-  if (isObjectObject(o) === false) return false;
-
-  // If has modified constructor
-  ctor = o.constructor;
-  if (typeof ctor !== 'function') return false;
-
-  // If has modified prototype
-  prot = ctor.prototype;
-  if (isObjectObject(prot) === false) return false;
-
-  // If constructor does not have an Object-specific method
-  if (prot.hasOwnProperty('isPrototypeOf') === false) {
-    return false;
-  }
-
-  // Most likely a plain Object
-  return true;
-}
-
-module.exports = isPlainObject;
-
 
 /***/ }),
 
@@ -8802,11 +7166,370 @@ function authenticate(state, options) {
 /***/ }),
 
 /***/ 675:
-/***/ (function(module) {
+/***/ (function(module, __unusedexports, __webpack_require__) {
 
-module.exports = function btoa(str) {
-  return new Buffer(str).toString('base64')
+"use strict";
+
+const path = __webpack_require__(622);
+const childProcess = __webpack_require__(129);
+const crossSpawn = __webpack_require__(400);
+const stripEof = __webpack_require__(768);
+const npmRunPath = __webpack_require__(406);
+const isStream = __webpack_require__(781);
+const _getStream = __webpack_require__(760);
+const pFinally = __webpack_require__(697);
+const onExit = __webpack_require__(260);
+const errname = __webpack_require__(418);
+const stdio = __webpack_require__(151);
+
+const TEN_MEGABYTES = 1000 * 1000 * 10;
+
+function handleArgs(cmd, args, opts) {
+	let parsed;
+
+	opts = Object.assign({
+		extendEnv: true,
+		env: {}
+	}, opts);
+
+	if (opts.extendEnv) {
+		opts.env = Object.assign({}, process.env, opts.env);
+	}
+
+	if (opts.__winShell === true) {
+		delete opts.__winShell;
+		parsed = {
+			command: cmd,
+			args,
+			options: opts,
+			file: cmd,
+			original: {
+				cmd,
+				args
+			}
+		};
+	} else {
+		parsed = crossSpawn._parse(cmd, args, opts);
+	}
+
+	opts = Object.assign({
+		maxBuffer: TEN_MEGABYTES,
+		buffer: true,
+		stripEof: true,
+		preferLocal: true,
+		localDir: parsed.options.cwd || process.cwd(),
+		encoding: 'utf8',
+		reject: true,
+		cleanup: true
+	}, parsed.options);
+
+	opts.stdio = stdio(opts);
+
+	if (opts.preferLocal) {
+		opts.env = npmRunPath.env(Object.assign({}, opts, {cwd: opts.localDir}));
+	}
+
+	if (opts.detached) {
+		// #115
+		opts.cleanup = false;
+	}
+
+	if (process.platform === 'win32' && path.basename(parsed.command) === 'cmd.exe') {
+		// #116
+		parsed.args.unshift('/q');
+	}
+
+	return {
+		cmd: parsed.command,
+		args: parsed.args,
+		opts,
+		parsed
+	};
 }
+
+function handleInput(spawned, input) {
+	if (input === null || input === undefined) {
+		return;
+	}
+
+	if (isStream(input)) {
+		input.pipe(spawned.stdin);
+	} else {
+		spawned.stdin.end(input);
+	}
+}
+
+function handleOutput(opts, val) {
+	if (val && opts.stripEof) {
+		val = stripEof(val);
+	}
+
+	return val;
+}
+
+function handleShell(fn, cmd, opts) {
+	let file = '/bin/sh';
+	let args = ['-c', cmd];
+
+	opts = Object.assign({}, opts);
+
+	if (process.platform === 'win32') {
+		opts.__winShell = true;
+		file = process.env.comspec || 'cmd.exe';
+		args = ['/s', '/c', `"${cmd}"`];
+		opts.windowsVerbatimArguments = true;
+	}
+
+	if (opts.shell) {
+		file = opts.shell;
+		delete opts.shell;
+	}
+
+	return fn(file, args, opts);
+}
+
+function getStream(process, stream, {encoding, buffer, maxBuffer}) {
+	if (!process[stream]) {
+		return null;
+	}
+
+	let ret;
+
+	if (!buffer) {
+		// TODO: Use `ret = util.promisify(stream.finished)(process[stream]);` when targeting Node.js 10
+		ret = new Promise((resolve, reject) => {
+			process[stream]
+				.once('end', resolve)
+				.once('error', reject);
+		});
+	} else if (encoding) {
+		ret = _getStream(process[stream], {
+			encoding,
+			maxBuffer
+		});
+	} else {
+		ret = _getStream.buffer(process[stream], {maxBuffer});
+	}
+
+	return ret.catch(err => {
+		err.stream = stream;
+		err.message = `${stream} ${err.message}`;
+		throw err;
+	});
+}
+
+function makeError(result, options) {
+	const {stdout, stderr} = result;
+
+	let err = result.error;
+	const {code, signal} = result;
+
+	const {parsed, joinedCmd} = options;
+	const timedOut = options.timedOut || false;
+
+	if (!err) {
+		let output = '';
+
+		if (Array.isArray(parsed.opts.stdio)) {
+			if (parsed.opts.stdio[2] !== 'inherit') {
+				output += output.length > 0 ? stderr : `\n${stderr}`;
+			}
+
+			if (parsed.opts.stdio[1] !== 'inherit') {
+				output += `\n${stdout}`;
+			}
+		} else if (parsed.opts.stdio !== 'inherit') {
+			output = `\n${stderr}${stdout}`;
+		}
+
+		err = new Error(`Command failed: ${joinedCmd}${output}`);
+		err.code = code < 0 ? errname(code) : code;
+	}
+
+	err.stdout = stdout;
+	err.stderr = stderr;
+	err.failed = true;
+	err.signal = signal || null;
+	err.cmd = joinedCmd;
+	err.timedOut = timedOut;
+
+	return err;
+}
+
+function joinCmd(cmd, args) {
+	let joinedCmd = cmd;
+
+	if (Array.isArray(args) && args.length > 0) {
+		joinedCmd += ' ' + args.join(' ');
+	}
+
+	return joinedCmd;
+}
+
+module.exports = (cmd, args, opts) => {
+	const parsed = handleArgs(cmd, args, opts);
+	const {encoding, buffer, maxBuffer} = parsed.opts;
+	const joinedCmd = joinCmd(cmd, args);
+
+	let spawned;
+	try {
+		spawned = childProcess.spawn(parsed.cmd, parsed.args, parsed.opts);
+	} catch (err) {
+		return Promise.reject(err);
+	}
+
+	let removeExitHandler;
+	if (parsed.opts.cleanup) {
+		removeExitHandler = onExit(() => {
+			spawned.kill();
+		});
+	}
+
+	let timeoutId = null;
+	let timedOut = false;
+
+	const cleanup = () => {
+		if (timeoutId) {
+			clearTimeout(timeoutId);
+			timeoutId = null;
+		}
+
+		if (removeExitHandler) {
+			removeExitHandler();
+		}
+	};
+
+	if (parsed.opts.timeout > 0) {
+		timeoutId = setTimeout(() => {
+			timeoutId = null;
+			timedOut = true;
+			spawned.kill(parsed.opts.killSignal);
+		}, parsed.opts.timeout);
+	}
+
+	const processDone = new Promise(resolve => {
+		spawned.on('exit', (code, signal) => {
+			cleanup();
+			resolve({code, signal});
+		});
+
+		spawned.on('error', err => {
+			cleanup();
+			resolve({error: err});
+		});
+
+		if (spawned.stdin) {
+			spawned.stdin.on('error', err => {
+				cleanup();
+				resolve({error: err});
+			});
+		}
+	});
+
+	function destroy() {
+		if (spawned.stdout) {
+			spawned.stdout.destroy();
+		}
+
+		if (spawned.stderr) {
+			spawned.stderr.destroy();
+		}
+	}
+
+	const handlePromise = () => pFinally(Promise.all([
+		processDone,
+		getStream(spawned, 'stdout', {encoding, buffer, maxBuffer}),
+		getStream(spawned, 'stderr', {encoding, buffer, maxBuffer})
+	]).then(arr => {
+		const result = arr[0];
+		result.stdout = arr[1];
+		result.stderr = arr[2];
+
+		if (result.error || result.code !== 0 || result.signal !== null) {
+			const err = makeError(result, {
+				joinedCmd,
+				parsed,
+				timedOut
+			});
+
+			// TODO: missing some timeout logic for killed
+			// https://github.com/nodejs/node/blob/master/lib/child_process.js#L203
+			// err.killed = spawned.killed || killed;
+			err.killed = err.killed || spawned.killed;
+
+			if (!parsed.opts.reject) {
+				return err;
+			}
+
+			throw err;
+		}
+
+		return {
+			stdout: handleOutput(parsed.opts, result.stdout),
+			stderr: handleOutput(parsed.opts, result.stderr),
+			code: 0,
+			failed: false,
+			killed: false,
+			signal: null,
+			cmd: joinedCmd,
+			timedOut: false
+		};
+	}), destroy);
+
+	crossSpawn._enoent.hookChildProcess(spawned, parsed.parsed);
+
+	handleInput(spawned, parsed.opts.input);
+
+	spawned.then = (onfulfilled, onrejected) => handlePromise().then(onfulfilled, onrejected);
+	spawned.catch = onrejected => handlePromise().catch(onrejected);
+
+	return spawned;
+};
+
+// TODO: set `stderr: 'ignore'` when that option is implemented
+module.exports.stdout = (...args) => module.exports(...args).then(x => x.stdout);
+
+// TODO: set `stdout: 'ignore'` when that option is implemented
+module.exports.stderr = (...args) => module.exports(...args).then(x => x.stderr);
+
+module.exports.shell = (cmd, opts) => handleShell(module.exports, cmd, opts);
+
+module.exports.sync = (cmd, args, opts) => {
+	const parsed = handleArgs(cmd, args, opts);
+	const joinedCmd = joinCmd(cmd, args);
+
+	if (isStream(parsed.opts.input)) {
+		throw new TypeError('The `input` option cannot be a stream in sync mode');
+	}
+
+	const result = childProcess.spawnSync(parsed.cmd, parsed.args, parsed.opts);
+	result.code = result.status;
+
+	if (result.error || result.status !== 0 || result.signal !== null) {
+		const err = makeError(result, {
+			joinedCmd,
+			parsed
+		});
+
+		if (!parsed.opts.reject) {
+			return err;
+		}
+
+		throw err;
+	}
+
+	return {
+		stdout: handleOutput(parsed.opts, result.stdout),
+		stderr: handleOutput(parsed.opts, result.stderr),
+		code: 0,
+		failed: false,
+		signal: null,
+		cmd: joinedCmd,
+		timedOut: false
+	};
+};
+
+module.exports.shellSync = (cmd, opts) => handleShell(module.exports.sync, cmd, opts);
 
 
 /***/ }),
@@ -8839,6 +7562,62 @@ exports.Deprecation = Deprecation;
 
 /***/ }),
 
+/***/ 696:
+/***/ (function(module) {
+
+"use strict";
+
+
+/*!
+ * isobject <https://github.com/jonschlinkert/isobject>
+ *
+ * Copyright (c) 2014-2017, Jon Schlinkert.
+ * Released under the MIT License.
+ */
+
+function isObject(val) {
+  return val != null && typeof val === 'object' && Array.isArray(val) === false;
+}
+
+/*!
+ * is-plain-object <https://github.com/jonschlinkert/is-plain-object>
+ *
+ * Copyright (c) 2014-2017, Jon Schlinkert.
+ * Released under the MIT License.
+ */
+
+function isObjectObject(o) {
+  return isObject(o) === true
+    && Object.prototype.toString.call(o) === '[object Object]';
+}
+
+function isPlainObject(o) {
+  var ctor,prot;
+
+  if (isObjectObject(o) === false) return false;
+
+  // If has modified constructor
+  ctor = o.constructor;
+  if (typeof ctor !== 'function') return false;
+
+  // If has modified prototype
+  prot = ctor.prototype;
+  if (isObjectObject(prot) === false) return false;
+
+  // If constructor does not have an Object-specific method
+  if (prot.hasOwnProperty('isPrototypeOf') === false) {
+    return false;
+  }
+
+  // Most likely a plain Object
+  return true;
+}
+
+module.exports = isPlainObject;
+
+
+/***/ }),
+
 /***/ 697:
 /***/ (function(module) {
 
@@ -8858,6 +7637,22 @@ module.exports = (promise, onFinally) => {
 		})
 	);
 };
+
+
+/***/ }),
+
+/***/ 740:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+module.exports = hasLastPage
+
+const deprecate = __webpack_require__(370)
+const getPageLinks = __webpack_require__(577)
+
+function hasLastPage (link) {
+  deprecate(`octokit.hasLastPage() – You can use octokit.paginate or async iterators instead: https://github.com/octokit/rest.js#pagination.`)
+  return getPageLinks(link).last
+}
 
 
 /***/ }),
@@ -8945,9 +7740,9 @@ function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'defau
 
 var endpoint = __webpack_require__(385);
 var universalUserAgent = __webpack_require__(211);
-var isPlainObject = _interopDefault(__webpack_require__(548));
+var isPlainObject = _interopDefault(__webpack_require__(696));
 var nodeFetch = _interopDefault(__webpack_require__(454));
-var requestError = __webpack_require__(257);
+var requestError = __webpack_require__(463);
 
 const VERSION = "5.4.2";
 
@@ -9089,55 +7884,60 @@ exports.request = request;
 
 /***/ }),
 
-/***/ 759:
-/***/ (function(module) {
+/***/ 760:
+/***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
 
+const pump = __webpack_require__(453);
+const bufferStream = __webpack_require__(582);
 
-// See http://www.robvanderwoude.com/escapechars.php
-const metaCharsRegExp = /([()\][%!^"`<>&|;, *?])/g;
-
-function escapeCommand(arg) {
-    // Escape meta chars
-    arg = arg.replace(metaCharsRegExp, '^$1');
-
-    return arg;
+class MaxBufferError extends Error {
+	constructor() {
+		super('maxBuffer exceeded');
+		this.name = 'MaxBufferError';
+	}
 }
 
-function escapeArgument(arg, doubleEscapeMetaChars) {
-    // Convert to string
-    arg = `${arg}`;
+function getStream(inputStream, options) {
+	if (!inputStream) {
+		return Promise.reject(new Error('Expected a stream'));
+	}
 
-    // Algorithm below is based on https://qntm.org/cmd
+	options = Object.assign({maxBuffer: Infinity}, options);
 
-    // Sequence of backslashes followed by a double quote:
-    // double up all the backslashes and escape the double quote
-    arg = arg.replace(/(\\*)"/g, '$1$1\\"');
+	const {maxBuffer} = options;
 
-    // Sequence of backslashes followed by the end of the string
-    // (which will become a double quote later):
-    // double up all the backslashes
-    arg = arg.replace(/(\\*)$/, '$1$1');
+	let stream;
+	return new Promise((resolve, reject) => {
+		const rejectPromise = error => {
+			if (error) { // A null check
+				error.bufferedData = stream.getBufferedValue();
+			}
+			reject(error);
+		};
 
-    // All other backslashes occur literally
+		stream = pump(inputStream, bufferStream(options), error => {
+			if (error) {
+				rejectPromise(error);
+				return;
+			}
 
-    // Quote the whole thing:
-    arg = `"${arg}"`;
+			resolve();
+		});
 
-    // Escape meta chars
-    arg = arg.replace(metaCharsRegExp, '^$1');
-
-    // Double escape meta chars if necessary
-    if (doubleEscapeMetaChars) {
-        arg = arg.replace(metaCharsRegExp, '^$1');
-    }
-
-    return arg;
+		stream.on('data', () => {
+			if (stream.getBufferedLength() > maxBuffer) {
+				rejectPromise(new MaxBufferError());
+			}
+		});
+	}).then(() => stream.getBufferedValue());
 }
 
-module.exports.command = escapeCommand;
-module.exports.argument = escapeArgument;
+module.exports = getStream;
+module.exports.buffer = (stream, options) => getStream(stream, Object.assign({}, options, {encoding: 'buffer'}));
+module.exports.array = (stream, options) => getStream(stream, Object.assign({}, options, {array: true}));
+module.exports.MaxBufferError = MaxBufferError;
 
 
 /***/ }),
@@ -9172,53 +7972,6 @@ module.exports = function (x) {
 
 /***/ }),
 
-/***/ 774:
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-const cp = __webpack_require__(129);
-const parse = __webpack_require__(884);
-const enoent = __webpack_require__(15);
-
-function spawn(command, args, options) {
-    // Parse the arguments
-    const parsed = parse(command, args, options);
-
-    // Spawn the child process
-    const spawned = cp.spawn(parsed.command, parsed.args, parsed.options);
-
-    // Hook into child process "exit" event to emit an error if the command
-    // does not exists, see: https://github.com/IndigoUnited/node-cross-spawn/issues/16
-    enoent.hookChildProcess(spawned, parsed);
-
-    return spawned;
-}
-
-function spawnSync(command, args, options) {
-    // Parse the arguments
-    const parsed = parse(command, args, options);
-
-    // Spawn the child process
-    const result = cp.spawnSync(parsed.command, parsed.args, parsed.options);
-
-    // Analyze if the command does not exist, see: https://github.com/IndigoUnited/node-cross-spawn/issues/16
-    result.error = result.error || enoent.verifyENOENTSync(result.status, parsed);
-
-    return result;
-}
-
-module.exports = spawn;
-module.exports.spawn = spawn;
-module.exports.sync = spawnSync;
-
-module.exports._parse = parse;
-module.exports._enoent = enoent;
-
-
-/***/ }),
-
 /***/ 777:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -9229,6 +7982,35 @@ const getPage = __webpack_require__(265)
 function getFirstPage (octokit, link, headers) {
   return getPage(octokit, link, 'first', headers)
 }
+
+
+/***/ }),
+
+/***/ 781:
+/***/ (function(module) {
+
+"use strict";
+
+
+var isStream = module.exports = function (stream) {
+	return stream !== null && typeof stream === 'object' && typeof stream.pipe === 'function';
+};
+
+isStream.writable = function (stream) {
+	return isStream(stream) && stream.writable !== false && typeof stream._write === 'function' && typeof stream._writableState === 'object';
+};
+
+isStream.readable = function (stream) {
+	return isStream(stream) && stream.readable !== false && typeof stream._read === 'function' && typeof stream._readableState === 'object';
+};
+
+isStream.duplex = function (stream) {
+	return isStream.writable(stream) && isStream.readable(stream);
+};
+
+isStream.transform = function (stream) {
+	return isStream.duplex(stream) && typeof stream._transform === 'function' && typeof stream._transformState === 'object';
+};
 
 
 /***/ }),
@@ -9369,10 +8151,84 @@ function sync (path, options) {
 
 /***/ }),
 
+/***/ 829:
+/***/ (function(module) {
+
+"use strict";
+
+module.exports = opts => {
+	opts = opts || {};
+
+	const env = opts.env || process.env;
+	const platform = opts.platform || process.platform;
+
+	if (platform !== 'win32') {
+		return 'PATH';
+	}
+
+	return Object.keys(env).find(x => x.toUpperCase() === 'PATH') || 'Path';
+};
+
+
+/***/ }),
+
 /***/ 835:
 /***/ (function(module) {
 
 module.exports = require("url");
+
+/***/ }),
+
+/***/ 838:
+/***/ (function(module) {
+
+module.exports = addHook
+
+function addHook (state, kind, name, hook) {
+  var orig = hook
+  if (!state.registry[name]) {
+    state.registry[name] = []
+  }
+
+  if (kind === 'before') {
+    hook = function (method, options) {
+      return Promise.resolve()
+        .then(orig.bind(null, options))
+        .then(method.bind(null, options))
+    }
+  }
+
+  if (kind === 'after') {
+    hook = function (method, options) {
+      var result
+      return Promise.resolve()
+        .then(method.bind(null, options))
+        .then(function (result_) {
+          result = result_
+          return orig(result, options)
+        })
+        .then(function () {
+          return result
+        })
+    }
+  }
+
+  if (kind === 'error') {
+    hook = function (method, options) {
+      return Promise.resolve()
+        .then(method.bind(null, options))
+        .catch(function (error) {
+          return orig(error, options)
+        })
+    }
+  }
+
+  state.registry[name].push({
+    hook: hook,
+    orig: orig
+  })
+}
+
 
 /***/ }),
 
@@ -22591,7 +21447,7 @@ function paginationMethodsPlugin (octokit) {
   octokit.getNextPage = __webpack_require__(550).bind(null, octokit)
   octokit.getPreviousPage = __webpack_require__(563).bind(null, octokit)
   octokit.hasFirstPage = __webpack_require__(536)
-  octokit.hasLastPage = __webpack_require__(336)
+  octokit.hasLastPage = __webpack_require__(740)
   octokit.hasNextPage = __webpack_require__(929)
   octokit.hasPreviousPage = __webpack_require__(558)
 }
@@ -23561,12 +22417,171 @@ module.exports = __webpack_require__(141);
 
 /***/ }),
 
+/***/ 858:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+module.exports = validate;
+
+const { RequestError } = __webpack_require__(497);
+const get = __webpack_require__(854);
+const set = __webpack_require__(883);
+
+function validate(octokit, options) {
+  if (!options.request.validate) {
+    return;
+  }
+  const { validate: params } = options.request;
+
+  Object.keys(params).forEach(parameterName => {
+    const parameter = get(params, parameterName);
+
+    const expectedType = parameter.type;
+    let parentParameterName;
+    let parentValue;
+    let parentParamIsPresent = true;
+    let parentParameterIsArray = false;
+
+    if (/\./.test(parameterName)) {
+      parentParameterName = parameterName.replace(/\.[^.]+$/, "");
+      parentParameterIsArray = parentParameterName.slice(-2) === "[]";
+      if (parentParameterIsArray) {
+        parentParameterName = parentParameterName.slice(0, -2);
+      }
+      parentValue = get(options, parentParameterName);
+      parentParamIsPresent =
+        parentParameterName === "headers" ||
+        (typeof parentValue === "object" && parentValue !== null);
+    }
+
+    const values = parentParameterIsArray
+      ? (get(options, parentParameterName) || []).map(
+          value => value[parameterName.split(/\./).pop()]
+        )
+      : [get(options, parameterName)];
+
+    values.forEach((value, i) => {
+      const valueIsPresent = typeof value !== "undefined";
+      const valueIsNull = value === null;
+      const currentParameterName = parentParameterIsArray
+        ? parameterName.replace(/\[\]/, `[${i}]`)
+        : parameterName;
+
+      if (!parameter.required && !valueIsPresent) {
+        return;
+      }
+
+      // if the parent parameter is of type object but allows null
+      // then the child parameters can be ignored
+      if (!parentParamIsPresent) {
+        return;
+      }
+
+      if (parameter.allowNull && valueIsNull) {
+        return;
+      }
+
+      if (!parameter.allowNull && valueIsNull) {
+        throw new RequestError(
+          `'${currentParameterName}' cannot be null`,
+          400,
+          {
+            request: options
+          }
+        );
+      }
+
+      if (parameter.required && !valueIsPresent) {
+        throw new RequestError(
+          `Empty value for parameter '${currentParameterName}': ${JSON.stringify(
+            value
+          )}`,
+          400,
+          {
+            request: options
+          }
+        );
+      }
+
+      // parse to integer before checking for enum
+      // so that string "1" will match enum with number 1
+      if (expectedType === "integer") {
+        const unparsedValue = value;
+        value = parseInt(value, 10);
+        if (isNaN(value)) {
+          throw new RequestError(
+            `Invalid value for parameter '${currentParameterName}': ${JSON.stringify(
+              unparsedValue
+            )} is NaN`,
+            400,
+            {
+              request: options
+            }
+          );
+        }
+      }
+
+      if (parameter.enum && parameter.enum.indexOf(String(value)) === -1) {
+        throw new RequestError(
+          `Invalid value for parameter '${currentParameterName}': ${JSON.stringify(
+            value
+          )}`,
+          400,
+          {
+            request: options
+          }
+        );
+      }
+
+      if (parameter.validation) {
+        const regex = new RegExp(parameter.validation);
+        if (!regex.test(value)) {
+          throw new RequestError(
+            `Invalid value for parameter '${currentParameterName}': ${JSON.stringify(
+              value
+            )}`,
+            400,
+            {
+              request: options
+            }
+          );
+        }
+      }
+
+      if (expectedType === "object" && typeof value === "string") {
+        try {
+          value = JSON.parse(value);
+        } catch (exception) {
+          throw new RequestError(
+            `JSON parse error of value for parameter '${currentParameterName}': ${JSON.stringify(
+              value
+            )}`,
+            400,
+            {
+              request: options
+            }
+          );
+        }
+      }
+
+      set(options, parameter.mapTo || currentParameterName, value);
+    });
+  });
+
+  return options;
+}
+
+
+/***/ }),
+
 /***/ 863:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 module.exports = authenticationBeforeRequest;
 
-const btoa = __webpack_require__(675);
+const btoa = __webpack_require__(397);
 
 const withAuthorizationPrefix = __webpack_require__(143);
 
@@ -24642,139 +23657,6 @@ module.exports = set;
 
 /***/ }),
 
-/***/ 884:
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-const path = __webpack_require__(622);
-const niceTry = __webpack_require__(948);
-const resolveCommand = __webpack_require__(542);
-const escape = __webpack_require__(759);
-const readShebang = __webpack_require__(306);
-const semver = __webpack_require__(607);
-
-const isWin = process.platform === 'win32';
-const isExecutableRegExp = /\.(?:com|exe)$/i;
-const isCmdShimRegExp = /node_modules[\\/].bin[\\/][^\\/]+\.cmd$/i;
-
-// `options.shell` is supported in Node ^4.8.0, ^5.7.0 and >= 6.0.0
-const supportsShellOption = niceTry(() => semver.satisfies(process.version, '^4.8.0 || ^5.7.0 || >= 6.0.0', true)) || false;
-
-function detectShebang(parsed) {
-    parsed.file = resolveCommand(parsed);
-
-    const shebang = parsed.file && readShebang(parsed.file);
-
-    if (shebang) {
-        parsed.args.unshift(parsed.file);
-        parsed.command = shebang;
-
-        return resolveCommand(parsed);
-    }
-
-    return parsed.file;
-}
-
-function parseNonShell(parsed) {
-    if (!isWin) {
-        return parsed;
-    }
-
-    // Detect & add support for shebangs
-    const commandFile = detectShebang(parsed);
-
-    // We don't need a shell if the command filename is an executable
-    const needsShell = !isExecutableRegExp.test(commandFile);
-
-    // If a shell is required, use cmd.exe and take care of escaping everything correctly
-    // Note that `forceShell` is an hidden option used only in tests
-    if (parsed.options.forceShell || needsShell) {
-        // Need to double escape meta chars if the command is a cmd-shim located in `node_modules/.bin/`
-        // The cmd-shim simply calls execute the package bin file with NodeJS, proxying any argument
-        // Because the escape of metachars with ^ gets interpreted when the cmd.exe is first called,
-        // we need to double escape them
-        const needsDoubleEscapeMetaChars = isCmdShimRegExp.test(commandFile);
-
-        // Normalize posix paths into OS compatible paths (e.g.: foo/bar -> foo\bar)
-        // This is necessary otherwise it will always fail with ENOENT in those cases
-        parsed.command = path.normalize(parsed.command);
-
-        // Escape command & arguments
-        parsed.command = escape.command(parsed.command);
-        parsed.args = parsed.args.map((arg) => escape.argument(arg, needsDoubleEscapeMetaChars));
-
-        const shellCommand = [parsed.command].concat(parsed.args).join(' ');
-
-        parsed.args = ['/d', '/s', '/c', `"${shellCommand}"`];
-        parsed.command = process.env.comspec || 'cmd.exe';
-        parsed.options.windowsVerbatimArguments = true; // Tell node's spawn that the arguments are already escaped
-    }
-
-    return parsed;
-}
-
-function parseShell(parsed) {
-    // If node supports the shell option, there's no need to mimic its behavior
-    if (supportsShellOption) {
-        return parsed;
-    }
-
-    // Mimic node shell option
-    // See https://github.com/nodejs/node/blob/b9f6a2dc059a1062776133f3d4fd848c4da7d150/lib/child_process.js#L335
-    const shellCommand = [parsed.command].concat(parsed.args).join(' ');
-
-    if (isWin) {
-        parsed.command = typeof parsed.options.shell === 'string' ? parsed.options.shell : process.env.comspec || 'cmd.exe';
-        parsed.args = ['/d', '/s', '/c', `"${shellCommand}"`];
-        parsed.options.windowsVerbatimArguments = true; // Tell node's spawn that the arguments are already escaped
-    } else {
-        if (typeof parsed.options.shell === 'string') {
-            parsed.command = parsed.options.shell;
-        } else if (process.platform === 'android') {
-            parsed.command = '/system/bin/sh';
-        } else {
-            parsed.command = '/bin/sh';
-        }
-
-        parsed.args = ['-c', shellCommand];
-    }
-
-    return parsed;
-}
-
-function parse(command, args, options) {
-    // Normalize arguments, similar to nodejs
-    if (args && !Array.isArray(args)) {
-        options = args;
-        args = null;
-    }
-
-    args = args ? args.slice(0) : []; // Clone array to avoid changing the original
-    options = Object.assign({}, options); // Clone object to avoid changing the original
-
-    // Build our parsed object
-    const parsed = {
-        command,
-        args,
-        options,
-        file: undefined,
-        original: {
-            command,
-            args,
-        },
-    };
-
-    // Delegate further parsing to shell or non-shell
-    return options.shell ? parseShell(parsed) : parseNonShell(parsed);
-}
-
-module.exports = parse;
-
-
-/***/ }),
-
 /***/ 898:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -24864,33 +23746,6 @@ function withCustomRequest(customRequest) {
 exports.graphql = graphql$1;
 exports.withCustomRequest = withCustomRequest;
 //# sourceMappingURL=index.js.map
-
-
-/***/ }),
-
-/***/ 907:
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-var shebangRegex = __webpack_require__(473);
-
-module.exports = function (str) {
-	var match = str.match(shebangRegex);
-
-	if (!match) {
-		return null;
-	}
-
-	var arr = match[0].replace(/#! ?/, '').split(' ');
-	var bin = arr[0].split('/').pop();
-	var arg = arr[1];
-
-	return (bin === 'env' ?
-		arg :
-		bin + (arg ? ' ' + arg : '')
-	);
-};
 
 
 /***/ }),
@@ -25035,429 +23890,1491 @@ exports.checkBypass = checkBypass;
 /***/ }),
 
 /***/ 955:
-/***/ (function(module, __unusedexports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-"use strict";
+exports = module.exports = SemVer
 
-const path = __webpack_require__(622);
-const childProcess = __webpack_require__(129);
-const crossSpawn = __webpack_require__(774);
-const stripEof = __webpack_require__(768);
-const npmRunPath = __webpack_require__(621);
-const isStream = __webpack_require__(323);
-const _getStream = __webpack_require__(145);
-const pFinally = __webpack_require__(697);
-const onExit = __webpack_require__(260);
-const errname = __webpack_require__(427);
-const stdio = __webpack_require__(168);
-
-const TEN_MEGABYTES = 1000 * 1000 * 10;
-
-function handleArgs(cmd, args, opts) {
-	let parsed;
-
-	opts = Object.assign({
-		extendEnv: true,
-		env: {}
-	}, opts);
-
-	if (opts.extendEnv) {
-		opts.env = Object.assign({}, process.env, opts.env);
-	}
-
-	if (opts.__winShell === true) {
-		delete opts.__winShell;
-		parsed = {
-			command: cmd,
-			args,
-			options: opts,
-			file: cmd,
-			original: {
-				cmd,
-				args
-			}
-		};
-	} else {
-		parsed = crossSpawn._parse(cmd, args, opts);
-	}
-
-	opts = Object.assign({
-		maxBuffer: TEN_MEGABYTES,
-		buffer: true,
-		stripEof: true,
-		preferLocal: true,
-		localDir: parsed.options.cwd || process.cwd(),
-		encoding: 'utf8',
-		reject: true,
-		cleanup: true
-	}, parsed.options);
-
-	opts.stdio = stdio(opts);
-
-	if (opts.preferLocal) {
-		opts.env = npmRunPath.env(Object.assign({}, opts, {cwd: opts.localDir}));
-	}
-
-	if (opts.detached) {
-		// #115
-		opts.cleanup = false;
-	}
-
-	if (process.platform === 'win32' && path.basename(parsed.command) === 'cmd.exe') {
-		// #116
-		parsed.args.unshift('/q');
-	}
-
-	return {
-		cmd: parsed.command,
-		args: parsed.args,
-		opts,
-		parsed
-	};
+var debug
+/* istanbul ignore next */
+if (typeof process === 'object' &&
+    process.env &&
+    process.env.NODE_DEBUG &&
+    /\bsemver\b/i.test(process.env.NODE_DEBUG)) {
+  debug = function () {
+    var args = Array.prototype.slice.call(arguments, 0)
+    args.unshift('SEMVER')
+    console.log.apply(console, args)
+  }
+} else {
+  debug = function () {}
 }
 
-function handleInput(spawned, input) {
-	if (input === null || input === undefined) {
-		return;
-	}
+// Note: this is the semver.org version of the spec that it implements
+// Not necessarily the package version of this code.
+exports.SEMVER_SPEC_VERSION = '2.0.0'
 
-	if (isStream(input)) {
-		input.pipe(spawned.stdin);
-	} else {
-		spawned.stdin.end(input);
-	}
+var MAX_LENGTH = 256
+var MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER ||
+  /* istanbul ignore next */ 9007199254740991
+
+// Max safe segment length for coercion.
+var MAX_SAFE_COMPONENT_LENGTH = 16
+
+// The actual regexps go on exports.re
+var re = exports.re = []
+var src = exports.src = []
+var R = 0
+
+// The following Regular Expressions can be used for tokenizing,
+// validating, and parsing SemVer version strings.
+
+// ## Numeric Identifier
+// A single `0`, or a non-zero digit followed by zero or more digits.
+
+var NUMERICIDENTIFIER = R++
+src[NUMERICIDENTIFIER] = '0|[1-9]\\d*'
+var NUMERICIDENTIFIERLOOSE = R++
+src[NUMERICIDENTIFIERLOOSE] = '[0-9]+'
+
+// ## Non-numeric Identifier
+// Zero or more digits, followed by a letter or hyphen, and then zero or
+// more letters, digits, or hyphens.
+
+var NONNUMERICIDENTIFIER = R++
+src[NONNUMERICIDENTIFIER] = '\\d*[a-zA-Z-][a-zA-Z0-9-]*'
+
+// ## Main Version
+// Three dot-separated numeric identifiers.
+
+var MAINVERSION = R++
+src[MAINVERSION] = '(' + src[NUMERICIDENTIFIER] + ')\\.' +
+                   '(' + src[NUMERICIDENTIFIER] + ')\\.' +
+                   '(' + src[NUMERICIDENTIFIER] + ')'
+
+var MAINVERSIONLOOSE = R++
+src[MAINVERSIONLOOSE] = '(' + src[NUMERICIDENTIFIERLOOSE] + ')\\.' +
+                        '(' + src[NUMERICIDENTIFIERLOOSE] + ')\\.' +
+                        '(' + src[NUMERICIDENTIFIERLOOSE] + ')'
+
+// ## Pre-release Version Identifier
+// A numeric identifier, or a non-numeric identifier.
+
+var PRERELEASEIDENTIFIER = R++
+src[PRERELEASEIDENTIFIER] = '(?:' + src[NUMERICIDENTIFIER] +
+                            '|' + src[NONNUMERICIDENTIFIER] + ')'
+
+var PRERELEASEIDENTIFIERLOOSE = R++
+src[PRERELEASEIDENTIFIERLOOSE] = '(?:' + src[NUMERICIDENTIFIERLOOSE] +
+                                 '|' + src[NONNUMERICIDENTIFIER] + ')'
+
+// ## Pre-release Version
+// Hyphen, followed by one or more dot-separated pre-release version
+// identifiers.
+
+var PRERELEASE = R++
+src[PRERELEASE] = '(?:-(' + src[PRERELEASEIDENTIFIER] +
+                  '(?:\\.' + src[PRERELEASEIDENTIFIER] + ')*))'
+
+var PRERELEASELOOSE = R++
+src[PRERELEASELOOSE] = '(?:-?(' + src[PRERELEASEIDENTIFIERLOOSE] +
+                       '(?:\\.' + src[PRERELEASEIDENTIFIERLOOSE] + ')*))'
+
+// ## Build Metadata Identifier
+// Any combination of digits, letters, or hyphens.
+
+var BUILDIDENTIFIER = R++
+src[BUILDIDENTIFIER] = '[0-9A-Za-z-]+'
+
+// ## Build Metadata
+// Plus sign, followed by one or more period-separated build metadata
+// identifiers.
+
+var BUILD = R++
+src[BUILD] = '(?:\\+(' + src[BUILDIDENTIFIER] +
+             '(?:\\.' + src[BUILDIDENTIFIER] + ')*))'
+
+// ## Full Version String
+// A main version, followed optionally by a pre-release version and
+// build metadata.
+
+// Note that the only major, minor, patch, and pre-release sections of
+// the version string are capturing groups.  The build metadata is not a
+// capturing group, because it should not ever be used in version
+// comparison.
+
+var FULL = R++
+var FULLPLAIN = 'v?' + src[MAINVERSION] +
+                src[PRERELEASE] + '?' +
+                src[BUILD] + '?'
+
+src[FULL] = '^' + FULLPLAIN + '$'
+
+// like full, but allows v1.2.3 and =1.2.3, which people do sometimes.
+// also, 1.0.0alpha1 (prerelease without the hyphen) which is pretty
+// common in the npm registry.
+var LOOSEPLAIN = '[v=\\s]*' + src[MAINVERSIONLOOSE] +
+                 src[PRERELEASELOOSE] + '?' +
+                 src[BUILD] + '?'
+
+var LOOSE = R++
+src[LOOSE] = '^' + LOOSEPLAIN + '$'
+
+var GTLT = R++
+src[GTLT] = '((?:<|>)?=?)'
+
+// Something like "2.*" or "1.2.x".
+// Note that "x.x" is a valid xRange identifer, meaning "any version"
+// Only the first item is strictly required.
+var XRANGEIDENTIFIERLOOSE = R++
+src[XRANGEIDENTIFIERLOOSE] = src[NUMERICIDENTIFIERLOOSE] + '|x|X|\\*'
+var XRANGEIDENTIFIER = R++
+src[XRANGEIDENTIFIER] = src[NUMERICIDENTIFIER] + '|x|X|\\*'
+
+var XRANGEPLAIN = R++
+src[XRANGEPLAIN] = '[v=\\s]*(' + src[XRANGEIDENTIFIER] + ')' +
+                   '(?:\\.(' + src[XRANGEIDENTIFIER] + ')' +
+                   '(?:\\.(' + src[XRANGEIDENTIFIER] + ')' +
+                   '(?:' + src[PRERELEASE] + ')?' +
+                   src[BUILD] + '?' +
+                   ')?)?'
+
+var XRANGEPLAINLOOSE = R++
+src[XRANGEPLAINLOOSE] = '[v=\\s]*(' + src[XRANGEIDENTIFIERLOOSE] + ')' +
+                        '(?:\\.(' + src[XRANGEIDENTIFIERLOOSE] + ')' +
+                        '(?:\\.(' + src[XRANGEIDENTIFIERLOOSE] + ')' +
+                        '(?:' + src[PRERELEASELOOSE] + ')?' +
+                        src[BUILD] + '?' +
+                        ')?)?'
+
+var XRANGE = R++
+src[XRANGE] = '^' + src[GTLT] + '\\s*' + src[XRANGEPLAIN] + '$'
+var XRANGELOOSE = R++
+src[XRANGELOOSE] = '^' + src[GTLT] + '\\s*' + src[XRANGEPLAINLOOSE] + '$'
+
+// Coercion.
+// Extract anything that could conceivably be a part of a valid semver
+var COERCE = R++
+src[COERCE] = '(?:^|[^\\d])' +
+              '(\\d{1,' + MAX_SAFE_COMPONENT_LENGTH + '})' +
+              '(?:\\.(\\d{1,' + MAX_SAFE_COMPONENT_LENGTH + '}))?' +
+              '(?:\\.(\\d{1,' + MAX_SAFE_COMPONENT_LENGTH + '}))?' +
+              '(?:$|[^\\d])'
+
+// Tilde ranges.
+// Meaning is "reasonably at or greater than"
+var LONETILDE = R++
+src[LONETILDE] = '(?:~>?)'
+
+var TILDETRIM = R++
+src[TILDETRIM] = '(\\s*)' + src[LONETILDE] + '\\s+'
+re[TILDETRIM] = new RegExp(src[TILDETRIM], 'g')
+var tildeTrimReplace = '$1~'
+
+var TILDE = R++
+src[TILDE] = '^' + src[LONETILDE] + src[XRANGEPLAIN] + '$'
+var TILDELOOSE = R++
+src[TILDELOOSE] = '^' + src[LONETILDE] + src[XRANGEPLAINLOOSE] + '$'
+
+// Caret ranges.
+// Meaning is "at least and backwards compatible with"
+var LONECARET = R++
+src[LONECARET] = '(?:\\^)'
+
+var CARETTRIM = R++
+src[CARETTRIM] = '(\\s*)' + src[LONECARET] + '\\s+'
+re[CARETTRIM] = new RegExp(src[CARETTRIM], 'g')
+var caretTrimReplace = '$1^'
+
+var CARET = R++
+src[CARET] = '^' + src[LONECARET] + src[XRANGEPLAIN] + '$'
+var CARETLOOSE = R++
+src[CARETLOOSE] = '^' + src[LONECARET] + src[XRANGEPLAINLOOSE] + '$'
+
+// A simple gt/lt/eq thing, or just "" to indicate "any version"
+var COMPARATORLOOSE = R++
+src[COMPARATORLOOSE] = '^' + src[GTLT] + '\\s*(' + LOOSEPLAIN + ')$|^$'
+var COMPARATOR = R++
+src[COMPARATOR] = '^' + src[GTLT] + '\\s*(' + FULLPLAIN + ')$|^$'
+
+// An expression to strip any whitespace between the gtlt and the thing
+// it modifies, so that `> 1.2.3` ==> `>1.2.3`
+var COMPARATORTRIM = R++
+src[COMPARATORTRIM] = '(\\s*)' + src[GTLT] +
+                      '\\s*(' + LOOSEPLAIN + '|' + src[XRANGEPLAIN] + ')'
+
+// this one has to use the /g flag
+re[COMPARATORTRIM] = new RegExp(src[COMPARATORTRIM], 'g')
+var comparatorTrimReplace = '$1$2$3'
+
+// Something like `1.2.3 - 1.2.4`
+// Note that these all use the loose form, because they'll be
+// checked against either the strict or loose comparator form
+// later.
+var HYPHENRANGE = R++
+src[HYPHENRANGE] = '^\\s*(' + src[XRANGEPLAIN] + ')' +
+                   '\\s+-\\s+' +
+                   '(' + src[XRANGEPLAIN] + ')' +
+                   '\\s*$'
+
+var HYPHENRANGELOOSE = R++
+src[HYPHENRANGELOOSE] = '^\\s*(' + src[XRANGEPLAINLOOSE] + ')' +
+                        '\\s+-\\s+' +
+                        '(' + src[XRANGEPLAINLOOSE] + ')' +
+                        '\\s*$'
+
+// Star ranges basically just allow anything at all.
+var STAR = R++
+src[STAR] = '(<|>)?=?\\s*\\*'
+
+// Compile to actual regexp objects.
+// All are flag-free, unless they were created above with a flag.
+for (var i = 0; i < R; i++) {
+  debug(i, src[i])
+  if (!re[i]) {
+    re[i] = new RegExp(src[i])
+  }
 }
 
-function handleOutput(opts, val) {
-	if (val && opts.stripEof) {
-		val = stripEof(val);
-	}
+exports.parse = parse
+function parse (version, options) {
+  if (!options || typeof options !== 'object') {
+    options = {
+      loose: !!options,
+      includePrerelease: false
+    }
+  }
 
-	return val;
+  if (version instanceof SemVer) {
+    return version
+  }
+
+  if (typeof version !== 'string') {
+    return null
+  }
+
+  if (version.length > MAX_LENGTH) {
+    return null
+  }
+
+  var r = options.loose ? re[LOOSE] : re[FULL]
+  if (!r.test(version)) {
+    return null
+  }
+
+  try {
+    return new SemVer(version, options)
+  } catch (er) {
+    return null
+  }
 }
 
-function handleShell(fn, cmd, opts) {
-	let file = '/bin/sh';
-	let args = ['-c', cmd];
-
-	opts = Object.assign({}, opts);
-
-	if (process.platform === 'win32') {
-		opts.__winShell = true;
-		file = process.env.comspec || 'cmd.exe';
-		args = ['/s', '/c', `"${cmd}"`];
-		opts.windowsVerbatimArguments = true;
-	}
-
-	if (opts.shell) {
-		file = opts.shell;
-		delete opts.shell;
-	}
-
-	return fn(file, args, opts);
+exports.valid = valid
+function valid (version, options) {
+  var v = parse(version, options)
+  return v ? v.version : null
 }
 
-function getStream(process, stream, {encoding, buffer, maxBuffer}) {
-	if (!process[stream]) {
-		return null;
-	}
-
-	let ret;
-
-	if (!buffer) {
-		// TODO: Use `ret = util.promisify(stream.finished)(process[stream]);` when targeting Node.js 10
-		ret = new Promise((resolve, reject) => {
-			process[stream]
-				.once('end', resolve)
-				.once('error', reject);
-		});
-	} else if (encoding) {
-		ret = _getStream(process[stream], {
-			encoding,
-			maxBuffer
-		});
-	} else {
-		ret = _getStream.buffer(process[stream], {maxBuffer});
-	}
-
-	return ret.catch(err => {
-		err.stream = stream;
-		err.message = `${stream} ${err.message}`;
-		throw err;
-	});
+exports.clean = clean
+function clean (version, options) {
+  var s = parse(version.trim().replace(/^[=v]+/, ''), options)
+  return s ? s.version : null
 }
 
-function makeError(result, options) {
-	const {stdout, stderr} = result;
+exports.SemVer = SemVer
 
-	let err = result.error;
-	const {code, signal} = result;
+function SemVer (version, options) {
+  if (!options || typeof options !== 'object') {
+    options = {
+      loose: !!options,
+      includePrerelease: false
+    }
+  }
+  if (version instanceof SemVer) {
+    if (version.loose === options.loose) {
+      return version
+    } else {
+      version = version.version
+    }
+  } else if (typeof version !== 'string') {
+    throw new TypeError('Invalid Version: ' + version)
+  }
 
-	const {parsed, joinedCmd} = options;
-	const timedOut = options.timedOut || false;
+  if (version.length > MAX_LENGTH) {
+    throw new TypeError('version is longer than ' + MAX_LENGTH + ' characters')
+  }
 
-	if (!err) {
-		let output = '';
+  if (!(this instanceof SemVer)) {
+    return new SemVer(version, options)
+  }
 
-		if (Array.isArray(parsed.opts.stdio)) {
-			if (parsed.opts.stdio[2] !== 'inherit') {
-				output += output.length > 0 ? stderr : `\n${stderr}`;
-			}
+  debug('SemVer', version, options)
+  this.options = options
+  this.loose = !!options.loose
 
-			if (parsed.opts.stdio[1] !== 'inherit') {
-				output += `\n${stdout}`;
-			}
-		} else if (parsed.opts.stdio !== 'inherit') {
-			output = `\n${stderr}${stdout}`;
-		}
+  var m = version.trim().match(options.loose ? re[LOOSE] : re[FULL])
 
-		err = new Error(`Command failed: ${joinedCmd}${output}`);
-		err.code = code < 0 ? errname(code) : code;
-	}
+  if (!m) {
+    throw new TypeError('Invalid Version: ' + version)
+  }
 
-	err.stdout = stdout;
-	err.stderr = stderr;
-	err.failed = true;
-	err.signal = signal || null;
-	err.cmd = joinedCmd;
-	err.timedOut = timedOut;
+  this.raw = version
 
-	return err;
+  // these are actually numbers
+  this.major = +m[1]
+  this.minor = +m[2]
+  this.patch = +m[3]
+
+  if (this.major > MAX_SAFE_INTEGER || this.major < 0) {
+    throw new TypeError('Invalid major version')
+  }
+
+  if (this.minor > MAX_SAFE_INTEGER || this.minor < 0) {
+    throw new TypeError('Invalid minor version')
+  }
+
+  if (this.patch > MAX_SAFE_INTEGER || this.patch < 0) {
+    throw new TypeError('Invalid patch version')
+  }
+
+  // numberify any prerelease numeric ids
+  if (!m[4]) {
+    this.prerelease = []
+  } else {
+    this.prerelease = m[4].split('.').map(function (id) {
+      if (/^[0-9]+$/.test(id)) {
+        var num = +id
+        if (num >= 0 && num < MAX_SAFE_INTEGER) {
+          return num
+        }
+      }
+      return id
+    })
+  }
+
+  this.build = m[5] ? m[5].split('.') : []
+  this.format()
 }
 
-function joinCmd(cmd, args) {
-	let joinedCmd = cmd;
-
-	if (Array.isArray(args) && args.length > 0) {
-		joinedCmd += ' ' + args.join(' ');
-	}
-
-	return joinedCmd;
+SemVer.prototype.format = function () {
+  this.version = this.major + '.' + this.minor + '.' + this.patch
+  if (this.prerelease.length) {
+    this.version += '-' + this.prerelease.join('.')
+  }
+  return this.version
 }
 
-module.exports = (cmd, args, opts) => {
-	const parsed = handleArgs(cmd, args, opts);
-	const {encoding, buffer, maxBuffer} = parsed.opts;
-	const joinedCmd = joinCmd(cmd, args);
+SemVer.prototype.toString = function () {
+  return this.version
+}
 
-	let spawned;
-	try {
-		spawned = childProcess.spawn(parsed.cmd, parsed.args, parsed.opts);
-	} catch (err) {
-		return Promise.reject(err);
-	}
+SemVer.prototype.compare = function (other) {
+  debug('SemVer.compare', this.version, this.options, other)
+  if (!(other instanceof SemVer)) {
+    other = new SemVer(other, this.options)
+  }
 
-	let removeExitHandler;
-	if (parsed.opts.cleanup) {
-		removeExitHandler = onExit(() => {
-			spawned.kill();
-		});
-	}
+  return this.compareMain(other) || this.comparePre(other)
+}
 
-	let timeoutId = null;
-	let timedOut = false;
+SemVer.prototype.compareMain = function (other) {
+  if (!(other instanceof SemVer)) {
+    other = new SemVer(other, this.options)
+  }
 
-	const cleanup = () => {
-		if (timeoutId) {
-			clearTimeout(timeoutId);
-			timeoutId = null;
-		}
+  return compareIdentifiers(this.major, other.major) ||
+         compareIdentifiers(this.minor, other.minor) ||
+         compareIdentifiers(this.patch, other.patch)
+}
 
-		if (removeExitHandler) {
-			removeExitHandler();
-		}
-	};
+SemVer.prototype.comparePre = function (other) {
+  if (!(other instanceof SemVer)) {
+    other = new SemVer(other, this.options)
+  }
 
-	if (parsed.opts.timeout > 0) {
-		timeoutId = setTimeout(() => {
-			timeoutId = null;
-			timedOut = true;
-			spawned.kill(parsed.opts.killSignal);
-		}, parsed.opts.timeout);
-	}
+  // NOT having a prerelease is > having one
+  if (this.prerelease.length && !other.prerelease.length) {
+    return -1
+  } else if (!this.prerelease.length && other.prerelease.length) {
+    return 1
+  } else if (!this.prerelease.length && !other.prerelease.length) {
+    return 0
+  }
 
-	const processDone = new Promise(resolve => {
-		spawned.on('exit', (code, signal) => {
-			cleanup();
-			resolve({code, signal});
-		});
+  var i = 0
+  do {
+    var a = this.prerelease[i]
+    var b = other.prerelease[i]
+    debug('prerelease compare', i, a, b)
+    if (a === undefined && b === undefined) {
+      return 0
+    } else if (b === undefined) {
+      return 1
+    } else if (a === undefined) {
+      return -1
+    } else if (a === b) {
+      continue
+    } else {
+      return compareIdentifiers(a, b)
+    }
+  } while (++i)
+}
 
-		spawned.on('error', err => {
-			cleanup();
-			resolve({error: err});
-		});
+// preminor will bump the version up to the next minor release, and immediately
+// down to pre-release. premajor and prepatch work the same way.
+SemVer.prototype.inc = function (release, identifier) {
+  switch (release) {
+    case 'premajor':
+      this.prerelease.length = 0
+      this.patch = 0
+      this.minor = 0
+      this.major++
+      this.inc('pre', identifier)
+      break
+    case 'preminor':
+      this.prerelease.length = 0
+      this.patch = 0
+      this.minor++
+      this.inc('pre', identifier)
+      break
+    case 'prepatch':
+      // If this is already a prerelease, it will bump to the next version
+      // drop any prereleases that might already exist, since they are not
+      // relevant at this point.
+      this.prerelease.length = 0
+      this.inc('patch', identifier)
+      this.inc('pre', identifier)
+      break
+    // If the input is a non-prerelease version, this acts the same as
+    // prepatch.
+    case 'prerelease':
+      if (this.prerelease.length === 0) {
+        this.inc('patch', identifier)
+      }
+      this.inc('pre', identifier)
+      break
 
-		if (spawned.stdin) {
-			spawned.stdin.on('error', err => {
-				cleanup();
-				resolve({error: err});
-			});
-		}
-	});
+    case 'major':
+      // If this is a pre-major version, bump up to the same major version.
+      // Otherwise increment major.
+      // 1.0.0-5 bumps to 1.0.0
+      // 1.1.0 bumps to 2.0.0
+      if (this.minor !== 0 ||
+          this.patch !== 0 ||
+          this.prerelease.length === 0) {
+        this.major++
+      }
+      this.minor = 0
+      this.patch = 0
+      this.prerelease = []
+      break
+    case 'minor':
+      // If this is a pre-minor version, bump up to the same minor version.
+      // Otherwise increment minor.
+      // 1.2.0-5 bumps to 1.2.0
+      // 1.2.1 bumps to 1.3.0
+      if (this.patch !== 0 || this.prerelease.length === 0) {
+        this.minor++
+      }
+      this.patch = 0
+      this.prerelease = []
+      break
+    case 'patch':
+      // If this is not a pre-release version, it will increment the patch.
+      // If it is a pre-release it will bump up to the same patch version.
+      // 1.2.0-5 patches to 1.2.0
+      // 1.2.0 patches to 1.2.1
+      if (this.prerelease.length === 0) {
+        this.patch++
+      }
+      this.prerelease = []
+      break
+    // This probably shouldn't be used publicly.
+    // 1.0.0 "pre" would become 1.0.0-0 which is the wrong direction.
+    case 'pre':
+      if (this.prerelease.length === 0) {
+        this.prerelease = [0]
+      } else {
+        var i = this.prerelease.length
+        while (--i >= 0) {
+          if (typeof this.prerelease[i] === 'number') {
+            this.prerelease[i]++
+            i = -2
+          }
+        }
+        if (i === -1) {
+          // didn't increment anything
+          this.prerelease.push(0)
+        }
+      }
+      if (identifier) {
+        // 1.2.0-beta.1 bumps to 1.2.0-beta.2,
+        // 1.2.0-beta.fooblz or 1.2.0-beta bumps to 1.2.0-beta.0
+        if (this.prerelease[0] === identifier) {
+          if (isNaN(this.prerelease[1])) {
+            this.prerelease = [identifier, 0]
+          }
+        } else {
+          this.prerelease = [identifier, 0]
+        }
+      }
+      break
 
-	function destroy() {
-		if (spawned.stdout) {
-			spawned.stdout.destroy();
-		}
+    default:
+      throw new Error('invalid increment argument: ' + release)
+  }
+  this.format()
+  this.raw = this.version
+  return this
+}
 
-		if (spawned.stderr) {
-			spawned.stderr.destroy();
-		}
-	}
+exports.inc = inc
+function inc (version, release, loose, identifier) {
+  if (typeof (loose) === 'string') {
+    identifier = loose
+    loose = undefined
+  }
 
-	const handlePromise = () => pFinally(Promise.all([
-		processDone,
-		getStream(spawned, 'stdout', {encoding, buffer, maxBuffer}),
-		getStream(spawned, 'stderr', {encoding, buffer, maxBuffer})
-	]).then(arr => {
-		const result = arr[0];
-		result.stdout = arr[1];
-		result.stderr = arr[2];
+  try {
+    return new SemVer(version, loose).inc(release, identifier).version
+  } catch (er) {
+    return null
+  }
+}
 
-		if (result.error || result.code !== 0 || result.signal !== null) {
-			const err = makeError(result, {
-				joinedCmd,
-				parsed,
-				timedOut
-			});
+exports.diff = diff
+function diff (version1, version2) {
+  if (eq(version1, version2)) {
+    return null
+  } else {
+    var v1 = parse(version1)
+    var v2 = parse(version2)
+    var prefix = ''
+    if (v1.prerelease.length || v2.prerelease.length) {
+      prefix = 'pre'
+      var defaultResult = 'prerelease'
+    }
+    for (var key in v1) {
+      if (key === 'major' || key === 'minor' || key === 'patch') {
+        if (v1[key] !== v2[key]) {
+          return prefix + key
+        }
+      }
+    }
+    return defaultResult // may be undefined
+  }
+}
 
-			// TODO: missing some timeout logic for killed
-			// https://github.com/nodejs/node/blob/master/lib/child_process.js#L203
-			// err.killed = spawned.killed || killed;
-			err.killed = err.killed || spawned.killed;
+exports.compareIdentifiers = compareIdentifiers
 
-			if (!parsed.opts.reject) {
-				return err;
-			}
+var numeric = /^[0-9]+$/
+function compareIdentifiers (a, b) {
+  var anum = numeric.test(a)
+  var bnum = numeric.test(b)
 
-			throw err;
-		}
+  if (anum && bnum) {
+    a = +a
+    b = +b
+  }
 
-		return {
-			stdout: handleOutput(parsed.opts, result.stdout),
-			stderr: handleOutput(parsed.opts, result.stderr),
-			code: 0,
-			failed: false,
-			killed: false,
-			signal: null,
-			cmd: joinedCmd,
-			timedOut: false
-		};
-	}), destroy);
+  return a === b ? 0
+    : (anum && !bnum) ? -1
+    : (bnum && !anum) ? 1
+    : a < b ? -1
+    : 1
+}
 
-	crossSpawn._enoent.hookChildProcess(spawned, parsed.parsed);
+exports.rcompareIdentifiers = rcompareIdentifiers
+function rcompareIdentifiers (a, b) {
+  return compareIdentifiers(b, a)
+}
 
-	handleInput(spawned, parsed.opts.input);
+exports.major = major
+function major (a, loose) {
+  return new SemVer(a, loose).major
+}
 
-	spawned.then = (onfulfilled, onrejected) => handlePromise().then(onfulfilled, onrejected);
-	spawned.catch = onrejected => handlePromise().catch(onrejected);
+exports.minor = minor
+function minor (a, loose) {
+  return new SemVer(a, loose).minor
+}
 
-	return spawned;
-};
+exports.patch = patch
+function patch (a, loose) {
+  return new SemVer(a, loose).patch
+}
 
-// TODO: set `stderr: 'ignore'` when that option is implemented
-module.exports.stdout = (...args) => module.exports(...args).then(x => x.stdout);
+exports.compare = compare
+function compare (a, b, loose) {
+  return new SemVer(a, loose).compare(new SemVer(b, loose))
+}
 
-// TODO: set `stdout: 'ignore'` when that option is implemented
-module.exports.stderr = (...args) => module.exports(...args).then(x => x.stderr);
+exports.compareLoose = compareLoose
+function compareLoose (a, b) {
+  return compare(a, b, true)
+}
 
-module.exports.shell = (cmd, opts) => handleShell(module.exports, cmd, opts);
+exports.rcompare = rcompare
+function rcompare (a, b, loose) {
+  return compare(b, a, loose)
+}
 
-module.exports.sync = (cmd, args, opts) => {
-	const parsed = handleArgs(cmd, args, opts);
-	const joinedCmd = joinCmd(cmd, args);
+exports.sort = sort
+function sort (list, loose) {
+  return list.sort(function (a, b) {
+    return exports.compare(a, b, loose)
+  })
+}
 
-	if (isStream(parsed.opts.input)) {
-		throw new TypeError('The `input` option cannot be a stream in sync mode');
-	}
+exports.rsort = rsort
+function rsort (list, loose) {
+  return list.sort(function (a, b) {
+    return exports.rcompare(a, b, loose)
+  })
+}
 
-	const result = childProcess.spawnSync(parsed.cmd, parsed.args, parsed.opts);
-	result.code = result.status;
+exports.gt = gt
+function gt (a, b, loose) {
+  return compare(a, b, loose) > 0
+}
 
-	if (result.error || result.status !== 0 || result.signal !== null) {
-		const err = makeError(result, {
-			joinedCmd,
-			parsed
-		});
+exports.lt = lt
+function lt (a, b, loose) {
+  return compare(a, b, loose) < 0
+}
 
-		if (!parsed.opts.reject) {
-			return err;
-		}
+exports.eq = eq
+function eq (a, b, loose) {
+  return compare(a, b, loose) === 0
+}
 
-		throw err;
-	}
+exports.neq = neq
+function neq (a, b, loose) {
+  return compare(a, b, loose) !== 0
+}
 
-	return {
-		stdout: handleOutput(parsed.opts, result.stdout),
-		stderr: handleOutput(parsed.opts, result.stderr),
-		code: 0,
-		failed: false,
-		signal: null,
-		cmd: joinedCmd,
-		timedOut: false
-	};
-};
+exports.gte = gte
+function gte (a, b, loose) {
+  return compare(a, b, loose) >= 0
+}
 
-module.exports.shellSync = (cmd, opts) => handleShell(module.exports.sync, cmd, opts);
+exports.lte = lte
+function lte (a, b, loose) {
+  return compare(a, b, loose) <= 0
+}
 
+exports.cmp = cmp
+function cmp (a, op, b, loose) {
+  switch (op) {
+    case '===':
+      if (typeof a === 'object')
+        a = a.version
+      if (typeof b === 'object')
+        b = b.version
+      return a === b
 
-/***/ }),
+    case '!==':
+      if (typeof a === 'object')
+        a = a.version
+      if (typeof b === 'object')
+        b = b.version
+      return a !== b
 
-/***/ 966:
-/***/ (function(module, __unusedexports, __webpack_require__) {
+    case '':
+    case '=':
+    case '==':
+      return eq(a, b, loose)
 
-"use strict";
+    case '!=':
+      return neq(a, b, loose)
 
-const {PassThrough} = __webpack_require__(413);
+    case '>':
+      return gt(a, b, loose)
 
-module.exports = options => {
-	options = Object.assign({}, options);
+    case '>=':
+      return gte(a, b, loose)
 
-	const {array} = options;
-	let {encoding} = options;
-	const buffer = encoding === 'buffer';
-	let objectMode = false;
+    case '<':
+      return lt(a, b, loose)
 
-	if (array) {
-		objectMode = !(encoding || buffer);
-	} else {
-		encoding = encoding || 'utf8';
-	}
+    case '<=':
+      return lte(a, b, loose)
 
-	if (buffer) {
-		encoding = null;
-	}
+    default:
+      throw new TypeError('Invalid operator: ' + op)
+  }
+}
 
-	let len = 0;
-	const ret = [];
-	const stream = new PassThrough({objectMode});
+exports.Comparator = Comparator
+function Comparator (comp, options) {
+  if (!options || typeof options !== 'object') {
+    options = {
+      loose: !!options,
+      includePrerelease: false
+    }
+  }
 
-	if (encoding) {
-		stream.setEncoding(encoding);
-	}
+  if (comp instanceof Comparator) {
+    if (comp.loose === !!options.loose) {
+      return comp
+    } else {
+      comp = comp.value
+    }
+  }
 
-	stream.on('data', chunk => {
-		ret.push(chunk);
+  if (!(this instanceof Comparator)) {
+    return new Comparator(comp, options)
+  }
 
-		if (objectMode) {
-			len = ret.length;
-		} else {
-			len += chunk.length;
-		}
-	});
+  debug('comparator', comp, options)
+  this.options = options
+  this.loose = !!options.loose
+  this.parse(comp)
 
-	stream.getBufferedValue = () => {
-		if (array) {
-			return ret;
-		}
+  if (this.semver === ANY) {
+    this.value = ''
+  } else {
+    this.value = this.operator + this.semver.version
+  }
 
-		return buffer ? Buffer.concat(ret, len) : ret.join('');
-	};
+  debug('comp', this)
+}
 
-	stream.getBufferedLength = () => len;
+var ANY = {}
+Comparator.prototype.parse = function (comp) {
+  var r = this.options.loose ? re[COMPARATORLOOSE] : re[COMPARATOR]
+  var m = comp.match(r)
 
-	return stream;
-};
+  if (!m) {
+    throw new TypeError('Invalid comparator: ' + comp)
+  }
+
+  this.operator = m[1]
+  if (this.operator === '=') {
+    this.operator = ''
+  }
+
+  // if it literally is just '>' or '' then allow anything.
+  if (!m[2]) {
+    this.semver = ANY
+  } else {
+    this.semver = new SemVer(m[2], this.options.loose)
+  }
+}
+
+Comparator.prototype.toString = function () {
+  return this.value
+}
+
+Comparator.prototype.test = function (version) {
+  debug('Comparator.test', version, this.options.loose)
+
+  if (this.semver === ANY) {
+    return true
+  }
+
+  if (typeof version === 'string') {
+    version = new SemVer(version, this.options)
+  }
+
+  return cmp(version, this.operator, this.semver, this.options)
+}
+
+Comparator.prototype.intersects = function (comp, options) {
+  if (!(comp instanceof Comparator)) {
+    throw new TypeError('a Comparator is required')
+  }
+
+  if (!options || typeof options !== 'object') {
+    options = {
+      loose: !!options,
+      includePrerelease: false
+    }
+  }
+
+  var rangeTmp
+
+  if (this.operator === '') {
+    rangeTmp = new Range(comp.value, options)
+    return satisfies(this.value, rangeTmp, options)
+  } else if (comp.operator === '') {
+    rangeTmp = new Range(this.value, options)
+    return satisfies(comp.semver, rangeTmp, options)
+  }
+
+  var sameDirectionIncreasing =
+    (this.operator === '>=' || this.operator === '>') &&
+    (comp.operator === '>=' || comp.operator === '>')
+  var sameDirectionDecreasing =
+    (this.operator === '<=' || this.operator === '<') &&
+    (comp.operator === '<=' || comp.operator === '<')
+  var sameSemVer = this.semver.version === comp.semver.version
+  var differentDirectionsInclusive =
+    (this.operator === '>=' || this.operator === '<=') &&
+    (comp.operator === '>=' || comp.operator === '<=')
+  var oppositeDirectionsLessThan =
+    cmp(this.semver, '<', comp.semver, options) &&
+    ((this.operator === '>=' || this.operator === '>') &&
+    (comp.operator === '<=' || comp.operator === '<'))
+  var oppositeDirectionsGreaterThan =
+    cmp(this.semver, '>', comp.semver, options) &&
+    ((this.operator === '<=' || this.operator === '<') &&
+    (comp.operator === '>=' || comp.operator === '>'))
+
+  return sameDirectionIncreasing || sameDirectionDecreasing ||
+    (sameSemVer && differentDirectionsInclusive) ||
+    oppositeDirectionsLessThan || oppositeDirectionsGreaterThan
+}
+
+exports.Range = Range
+function Range (range, options) {
+  if (!options || typeof options !== 'object') {
+    options = {
+      loose: !!options,
+      includePrerelease: false
+    }
+  }
+
+  if (range instanceof Range) {
+    if (range.loose === !!options.loose &&
+        range.includePrerelease === !!options.includePrerelease) {
+      return range
+    } else {
+      return new Range(range.raw, options)
+    }
+  }
+
+  if (range instanceof Comparator) {
+    return new Range(range.value, options)
+  }
+
+  if (!(this instanceof Range)) {
+    return new Range(range, options)
+  }
+
+  this.options = options
+  this.loose = !!options.loose
+  this.includePrerelease = !!options.includePrerelease
+
+  // First, split based on boolean or ||
+  this.raw = range
+  this.set = range.split(/\s*\|\|\s*/).map(function (range) {
+    return this.parseRange(range.trim())
+  }, this).filter(function (c) {
+    // throw out any that are not relevant for whatever reason
+    return c.length
+  })
+
+  if (!this.set.length) {
+    throw new TypeError('Invalid SemVer Range: ' + range)
+  }
+
+  this.format()
+}
+
+Range.prototype.format = function () {
+  this.range = this.set.map(function (comps) {
+    return comps.join(' ').trim()
+  }).join('||').trim()
+  return this.range
+}
+
+Range.prototype.toString = function () {
+  return this.range
+}
+
+Range.prototype.parseRange = function (range) {
+  var loose = this.options.loose
+  range = range.trim()
+  // `1.2.3 - 1.2.4` => `>=1.2.3 <=1.2.4`
+  var hr = loose ? re[HYPHENRANGELOOSE] : re[HYPHENRANGE]
+  range = range.replace(hr, hyphenReplace)
+  debug('hyphen replace', range)
+  // `> 1.2.3 < 1.2.5` => `>1.2.3 <1.2.5`
+  range = range.replace(re[COMPARATORTRIM], comparatorTrimReplace)
+  debug('comparator trim', range, re[COMPARATORTRIM])
+
+  // `~ 1.2.3` => `~1.2.3`
+  range = range.replace(re[TILDETRIM], tildeTrimReplace)
+
+  // `^ 1.2.3` => `^1.2.3`
+  range = range.replace(re[CARETTRIM], caretTrimReplace)
+
+  // normalize spaces
+  range = range.split(/\s+/).join(' ')
+
+  // At this point, the range is completely trimmed and
+  // ready to be split into comparators.
+
+  var compRe = loose ? re[COMPARATORLOOSE] : re[COMPARATOR]
+  var set = range.split(' ').map(function (comp) {
+    return parseComparator(comp, this.options)
+  }, this).join(' ').split(/\s+/)
+  if (this.options.loose) {
+    // in loose mode, throw out any that are not valid comparators
+    set = set.filter(function (comp) {
+      return !!comp.match(compRe)
+    })
+  }
+  set = set.map(function (comp) {
+    return new Comparator(comp, this.options)
+  }, this)
+
+  return set
+}
+
+Range.prototype.intersects = function (range, options) {
+  if (!(range instanceof Range)) {
+    throw new TypeError('a Range is required')
+  }
+
+  return this.set.some(function (thisComparators) {
+    return thisComparators.every(function (thisComparator) {
+      return range.set.some(function (rangeComparators) {
+        return rangeComparators.every(function (rangeComparator) {
+          return thisComparator.intersects(rangeComparator, options)
+        })
+      })
+    })
+  })
+}
+
+// Mostly just for testing and legacy API reasons
+exports.toComparators = toComparators
+function toComparators (range, options) {
+  return new Range(range, options).set.map(function (comp) {
+    return comp.map(function (c) {
+      return c.value
+    }).join(' ').trim().split(' ')
+  })
+}
+
+// comprised of xranges, tildes, stars, and gtlt's at this point.
+// already replaced the hyphen ranges
+// turn into a set of JUST comparators.
+function parseComparator (comp, options) {
+  debug('comp', comp, options)
+  comp = replaceCarets(comp, options)
+  debug('caret', comp)
+  comp = replaceTildes(comp, options)
+  debug('tildes', comp)
+  comp = replaceXRanges(comp, options)
+  debug('xrange', comp)
+  comp = replaceStars(comp, options)
+  debug('stars', comp)
+  return comp
+}
+
+function isX (id) {
+  return !id || id.toLowerCase() === 'x' || id === '*'
+}
+
+// ~, ~> --> * (any, kinda silly)
+// ~2, ~2.x, ~2.x.x, ~>2, ~>2.x ~>2.x.x --> >=2.0.0 <3.0.0
+// ~2.0, ~2.0.x, ~>2.0, ~>2.0.x --> >=2.0.0 <2.1.0
+// ~1.2, ~1.2.x, ~>1.2, ~>1.2.x --> >=1.2.0 <1.3.0
+// ~1.2.3, ~>1.2.3 --> >=1.2.3 <1.3.0
+// ~1.2.0, ~>1.2.0 --> >=1.2.0 <1.3.0
+function replaceTildes (comp, options) {
+  return comp.trim().split(/\s+/).map(function (comp) {
+    return replaceTilde(comp, options)
+  }).join(' ')
+}
+
+function replaceTilde (comp, options) {
+  var r = options.loose ? re[TILDELOOSE] : re[TILDE]
+  return comp.replace(r, function (_, M, m, p, pr) {
+    debug('tilde', comp, _, M, m, p, pr)
+    var ret
+
+    if (isX(M)) {
+      ret = ''
+    } else if (isX(m)) {
+      ret = '>=' + M + '.0.0 <' + (+M + 1) + '.0.0'
+    } else if (isX(p)) {
+      // ~1.2 == >=1.2.0 <1.3.0
+      ret = '>=' + M + '.' + m + '.0 <' + M + '.' + (+m + 1) + '.0'
+    } else if (pr) {
+      debug('replaceTilde pr', pr)
+      ret = '>=' + M + '.' + m + '.' + p + '-' + pr +
+            ' <' + M + '.' + (+m + 1) + '.0'
+    } else {
+      // ~1.2.3 == >=1.2.3 <1.3.0
+      ret = '>=' + M + '.' + m + '.' + p +
+            ' <' + M + '.' + (+m + 1) + '.0'
+    }
+
+    debug('tilde return', ret)
+    return ret
+  })
+}
+
+// ^ --> * (any, kinda silly)
+// ^2, ^2.x, ^2.x.x --> >=2.0.0 <3.0.0
+// ^2.0, ^2.0.x --> >=2.0.0 <3.0.0
+// ^1.2, ^1.2.x --> >=1.2.0 <2.0.0
+// ^1.2.3 --> >=1.2.3 <2.0.0
+// ^1.2.0 --> >=1.2.0 <2.0.0
+function replaceCarets (comp, options) {
+  return comp.trim().split(/\s+/).map(function (comp) {
+    return replaceCaret(comp, options)
+  }).join(' ')
+}
+
+function replaceCaret (comp, options) {
+  debug('caret', comp, options)
+  var r = options.loose ? re[CARETLOOSE] : re[CARET]
+  return comp.replace(r, function (_, M, m, p, pr) {
+    debug('caret', comp, _, M, m, p, pr)
+    var ret
+
+    if (isX(M)) {
+      ret = ''
+    } else if (isX(m)) {
+      ret = '>=' + M + '.0.0 <' + (+M + 1) + '.0.0'
+    } else if (isX(p)) {
+      if (M === '0') {
+        ret = '>=' + M + '.' + m + '.0 <' + M + '.' + (+m + 1) + '.0'
+      } else {
+        ret = '>=' + M + '.' + m + '.0 <' + (+M + 1) + '.0.0'
+      }
+    } else if (pr) {
+      debug('replaceCaret pr', pr)
+      if (M === '0') {
+        if (m === '0') {
+          ret = '>=' + M + '.' + m + '.' + p + '-' + pr +
+                ' <' + M + '.' + m + '.' + (+p + 1)
+        } else {
+          ret = '>=' + M + '.' + m + '.' + p + '-' + pr +
+                ' <' + M + '.' + (+m + 1) + '.0'
+        }
+      } else {
+        ret = '>=' + M + '.' + m + '.' + p + '-' + pr +
+              ' <' + (+M + 1) + '.0.0'
+      }
+    } else {
+      debug('no pr')
+      if (M === '0') {
+        if (m === '0') {
+          ret = '>=' + M + '.' + m + '.' + p +
+                ' <' + M + '.' + m + '.' + (+p + 1)
+        } else {
+          ret = '>=' + M + '.' + m + '.' + p +
+                ' <' + M + '.' + (+m + 1) + '.0'
+        }
+      } else {
+        ret = '>=' + M + '.' + m + '.' + p +
+              ' <' + (+M + 1) + '.0.0'
+      }
+    }
+
+    debug('caret return', ret)
+    return ret
+  })
+}
+
+function replaceXRanges (comp, options) {
+  debug('replaceXRanges', comp, options)
+  return comp.split(/\s+/).map(function (comp) {
+    return replaceXRange(comp, options)
+  }).join(' ')
+}
+
+function replaceXRange (comp, options) {
+  comp = comp.trim()
+  var r = options.loose ? re[XRANGELOOSE] : re[XRANGE]
+  return comp.replace(r, function (ret, gtlt, M, m, p, pr) {
+    debug('xRange', comp, ret, gtlt, M, m, p, pr)
+    var xM = isX(M)
+    var xm = xM || isX(m)
+    var xp = xm || isX(p)
+    var anyX = xp
+
+    if (gtlt === '=' && anyX) {
+      gtlt = ''
+    }
+
+    if (xM) {
+      if (gtlt === '>' || gtlt === '<') {
+        // nothing is allowed
+        ret = '<0.0.0'
+      } else {
+        // nothing is forbidden
+        ret = '*'
+      }
+    } else if (gtlt && anyX) {
+      // we know patch is an x, because we have any x at all.
+      // replace X with 0
+      if (xm) {
+        m = 0
+      }
+      p = 0
+
+      if (gtlt === '>') {
+        // >1 => >=2.0.0
+        // >1.2 => >=1.3.0
+        // >1.2.3 => >= 1.2.4
+        gtlt = '>='
+        if (xm) {
+          M = +M + 1
+          m = 0
+          p = 0
+        } else {
+          m = +m + 1
+          p = 0
+        }
+      } else if (gtlt === '<=') {
+        // <=0.7.x is actually <0.8.0, since any 0.7.x should
+        // pass.  Similarly, <=7.x is actually <8.0.0, etc.
+        gtlt = '<'
+        if (xm) {
+          M = +M + 1
+        } else {
+          m = +m + 1
+        }
+      }
+
+      ret = gtlt + M + '.' + m + '.' + p
+    } else if (xm) {
+      ret = '>=' + M + '.0.0 <' + (+M + 1) + '.0.0'
+    } else if (xp) {
+      ret = '>=' + M + '.' + m + '.0 <' + M + '.' + (+m + 1) + '.0'
+    }
+
+    debug('xRange return', ret)
+
+    return ret
+  })
+}
+
+// Because * is AND-ed with everything else in the comparator,
+// and '' means "any version", just remove the *s entirely.
+function replaceStars (comp, options) {
+  debug('replaceStars', comp, options)
+  // Looseness is ignored here.  star is always as loose as it gets!
+  return comp.trim().replace(re[STAR], '')
+}
+
+// This function is passed to string.replace(re[HYPHENRANGE])
+// M, m, patch, prerelease, build
+// 1.2 - 3.4.5 => >=1.2.0 <=3.4.5
+// 1.2.3 - 3.4 => >=1.2.0 <3.5.0 Any 3.4.x will do
+// 1.2 - 3.4 => >=1.2.0 <3.5.0
+function hyphenReplace ($0,
+  from, fM, fm, fp, fpr, fb,
+  to, tM, tm, tp, tpr, tb) {
+  if (isX(fM)) {
+    from = ''
+  } else if (isX(fm)) {
+    from = '>=' + fM + '.0.0'
+  } else if (isX(fp)) {
+    from = '>=' + fM + '.' + fm + '.0'
+  } else {
+    from = '>=' + from
+  }
+
+  if (isX(tM)) {
+    to = ''
+  } else if (isX(tm)) {
+    to = '<' + (+tM + 1) + '.0.0'
+  } else if (isX(tp)) {
+    to = '<' + tM + '.' + (+tm + 1) + '.0'
+  } else if (tpr) {
+    to = '<=' + tM + '.' + tm + '.' + tp + '-' + tpr
+  } else {
+    to = '<=' + to
+  }
+
+  return (from + ' ' + to).trim()
+}
+
+// if ANY of the sets match ALL of its comparators, then pass
+Range.prototype.test = function (version) {
+  if (!version) {
+    return false
+  }
+
+  if (typeof version === 'string') {
+    version = new SemVer(version, this.options)
+  }
+
+  for (var i = 0; i < this.set.length; i++) {
+    if (testSet(this.set[i], version, this.options)) {
+      return true
+    }
+  }
+  return false
+}
+
+function testSet (set, version, options) {
+  for (var i = 0; i < set.length; i++) {
+    if (!set[i].test(version)) {
+      return false
+    }
+  }
+
+  if (version.prerelease.length && !options.includePrerelease) {
+    // Find the set of versions that are allowed to have prereleases
+    // For example, ^1.2.3-pr.1 desugars to >=1.2.3-pr.1 <2.0.0
+    // That should allow `1.2.3-pr.2` to pass.
+    // However, `1.2.4-alpha.notready` should NOT be allowed,
+    // even though it's within the range set by the comparators.
+    for (i = 0; i < set.length; i++) {
+      debug(set[i].semver)
+      if (set[i].semver === ANY) {
+        continue
+      }
+
+      if (set[i].semver.prerelease.length > 0) {
+        var allowed = set[i].semver
+        if (allowed.major === version.major &&
+            allowed.minor === version.minor &&
+            allowed.patch === version.patch) {
+          return true
+        }
+      }
+    }
+
+    // Version has a -pre, but it's not one of the ones we like.
+    return false
+  }
+
+  return true
+}
+
+exports.satisfies = satisfies
+function satisfies (version, range, options) {
+  try {
+    range = new Range(range, options)
+  } catch (er) {
+    return false
+  }
+  return range.test(version)
+}
+
+exports.maxSatisfying = maxSatisfying
+function maxSatisfying (versions, range, options) {
+  var max = null
+  var maxSV = null
+  try {
+    var rangeObj = new Range(range, options)
+  } catch (er) {
+    return null
+  }
+  versions.forEach(function (v) {
+    if (rangeObj.test(v)) {
+      // satisfies(v, range, options)
+      if (!max || maxSV.compare(v) === -1) {
+        // compare(max, v, true)
+        max = v
+        maxSV = new SemVer(max, options)
+      }
+    }
+  })
+  return max
+}
+
+exports.minSatisfying = minSatisfying
+function minSatisfying (versions, range, options) {
+  var min = null
+  var minSV = null
+  try {
+    var rangeObj = new Range(range, options)
+  } catch (er) {
+    return null
+  }
+  versions.forEach(function (v) {
+    if (rangeObj.test(v)) {
+      // satisfies(v, range, options)
+      if (!min || minSV.compare(v) === 1) {
+        // compare(min, v, true)
+        min = v
+        minSV = new SemVer(min, options)
+      }
+    }
+  })
+  return min
+}
+
+exports.minVersion = minVersion
+function minVersion (range, loose) {
+  range = new Range(range, loose)
+
+  var minver = new SemVer('0.0.0')
+  if (range.test(minver)) {
+    return minver
+  }
+
+  minver = new SemVer('0.0.0-0')
+  if (range.test(minver)) {
+    return minver
+  }
+
+  minver = null
+  for (var i = 0; i < range.set.length; ++i) {
+    var comparators = range.set[i]
+
+    comparators.forEach(function (comparator) {
+      // Clone to avoid manipulating the comparator's semver object.
+      var compver = new SemVer(comparator.semver.version)
+      switch (comparator.operator) {
+        case '>':
+          if (compver.prerelease.length === 0) {
+            compver.patch++
+          } else {
+            compver.prerelease.push(0)
+          }
+          compver.raw = compver.format()
+          /* fallthrough */
+        case '':
+        case '>=':
+          if (!minver || gt(minver, compver)) {
+            minver = compver
+          }
+          break
+        case '<':
+        case '<=':
+          /* Ignore maximum versions */
+          break
+        /* istanbul ignore next */
+        default:
+          throw new Error('Unexpected operation: ' + comparator.operator)
+      }
+    })
+  }
+
+  if (minver && range.test(minver)) {
+    return minver
+  }
+
+  return null
+}
+
+exports.validRange = validRange
+function validRange (range, options) {
+  try {
+    // Return '*' instead of '' so that truthiness works.
+    // This will throw if it's invalid anyway
+    return new Range(range, options).range || '*'
+  } catch (er) {
+    return null
+  }
+}
+
+// Determine if version is less than all the versions possible in the range
+exports.ltr = ltr
+function ltr (version, range, options) {
+  return outside(version, range, '<', options)
+}
+
+// Determine if version is greater than all the versions possible in the range.
+exports.gtr = gtr
+function gtr (version, range, options) {
+  return outside(version, range, '>', options)
+}
+
+exports.outside = outside
+function outside (version, range, hilo, options) {
+  version = new SemVer(version, options)
+  range = new Range(range, options)
+
+  var gtfn, ltefn, ltfn, comp, ecomp
+  switch (hilo) {
+    case '>':
+      gtfn = gt
+      ltefn = lte
+      ltfn = lt
+      comp = '>'
+      ecomp = '>='
+      break
+    case '<':
+      gtfn = lt
+      ltefn = gte
+      ltfn = gt
+      comp = '<'
+      ecomp = '<='
+      break
+    default:
+      throw new TypeError('Must provide a hilo val of "<" or ">"')
+  }
+
+  // If it satisifes the range it is not outside
+  if (satisfies(version, range, options)) {
+    return false
+  }
+
+  // From now on, variable terms are as if we're in "gtr" mode.
+  // but note that everything is flipped for the "ltr" function.
+
+  for (var i = 0; i < range.set.length; ++i) {
+    var comparators = range.set[i]
+
+    var high = null
+    var low = null
+
+    comparators.forEach(function (comparator) {
+      if (comparator.semver === ANY) {
+        comparator = new Comparator('>=0.0.0')
+      }
+      high = high || comparator
+      low = low || comparator
+      if (gtfn(comparator.semver, high.semver, options)) {
+        high = comparator
+      } else if (ltfn(comparator.semver, low.semver, options)) {
+        low = comparator
+      }
+    })
+
+    // If the edge version comparator has a operator then our version
+    // isn't outside it
+    if (high.operator === comp || high.operator === ecomp) {
+      return false
+    }
+
+    // If the lowest version comparator has an operator and our version
+    // is less than it then it isn't higher than the range
+    if ((!low.operator || low.operator === comp) &&
+        ltefn(version, low.semver)) {
+      return false
+    } else if (low.operator === ecomp && ltfn(version, low.semver)) {
+      return false
+    }
+  }
+  return true
+}
+
+exports.prerelease = prerelease
+function prerelease (version, options) {
+  var parsed = parse(version, options)
+  return (parsed && parsed.prerelease.length) ? parsed.prerelease : null
+}
+
+exports.intersects = intersects
+function intersects (r1, r2, options) {
+  r1 = new Range(r1, options)
+  r2 = new Range(r2, options)
+  return r1.intersects(r2)
+}
+
+exports.coerce = coerce
+function coerce (version) {
+  if (version instanceof SemVer) {
+    return version
+  }
+
+  if (typeof version !== 'string') {
+    return null
+  }
+
+  var match = version.match(re[COERCE])
+
+  if (match == null) {
+    return null
+  }
+
+  return parse(match[1] +
+    '.' + (match[2] || '0') +
+    '.' + (match[3] || '0'))
+}
 
 
 /***/ }),
@@ -25507,6 +25424,33 @@ function onceStrict (fn) {
   f.called = false
   return f
 }
+
+
+/***/ }),
+
+/***/ 998:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+var shebangRegex = __webpack_require__(171);
+
+module.exports = function (str) {
+	var match = str.match(shebangRegex);
+
+	if (!match) {
+		return null;
+	}
+
+	var arr = match[0].replace(/#! ?/, '').split(' ');
+	var bin = arr[0].split('/').pop();
+	var arg = arr[1];
+
+	return (bin === 'env' ?
+		arg :
+		bin + (arg ? ' ' + arg : '')
+	);
+};
 
 
 /***/ })

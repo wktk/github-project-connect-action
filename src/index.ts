@@ -7,7 +7,7 @@ const octokit: github.GitHub = new github.GitHub(token);
 
 function findIssueReference(text: string): number | undefined {
   const match = text.match(
-    /(?:connects?(?:\sto)?|close[sd]?|fixe?[sd]?|resolve[sd]?)\s+#(\d+)/
+    /(?:[Cc]onnects?(?:\sto)?|[Cc]lose[sd]?|[Ff]ixe?[sd]?|[Rr]esolve[sd]?)\s+#(\d+)/
   );
   if (match) return Number(match[1]);
 }
