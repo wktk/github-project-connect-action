@@ -19,7 +19,7 @@
   "author": "k.wakitani <k.wakitani@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.2.2",
+    "@actions/core": "^1.9.1",
     "@actions/github": "^2.1.1",
     "typescript": "^3.7.3"
   },
