@@ -1,6 +1,6 @@
 # GitHub Project Connect Action
 
-Connect Pull Request statuses to Issues on GitHub Project boards.
+Connect Pull Request statuses to Issues on GitHub Project (classic) boards.
 
 This idea is inspired by Waffle.io, which has shut down in 2019.
 
