@@ -1,9 +1,10 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
-import { Octokit } from "@octokit/rest";
+
+type Octokit = ReturnType<typeof github.getOctokit>;
 
 const token: string = core.getInput("github-token", { required: true });
-const octokit: github.GitHub = new github.GitHub(token);
+const octokit: Octokit = github.getOctokit(token);
 
 function findIssueReference(text: string): number | undefined {
   const match = text.match(
@@ -18,9 +19,13 @@ async function findCard(
   repo: string,
   issue: number,
 ): Promise<number | undefined> {
-  const columns = await octokit.projects.listColumns({ project_id: project });
+  const columns = await octokit.rest.projects.listColumns({
+    project_id: project,
+  });
   for (const column of columns.data) {
-    const cards = await octokit.projects.listCards({ column_id: column.id });
+    const cards = await octokit.rest.projects.listCards({
+      column_id: column.id,
+    });
     for (const card of cards.data) {
       if (card.content_url?.endsWith(`${owner}/${repo}/issues/${issue}`)) {
         return card.id;
@@ -33,13 +38,17 @@ async function parseProjectURL(input: string): Promise<[number, number]> {
   const url = new URL(input);
   const [, type, name] = url.pathname.split("/");
 
-  let projects: Promise<Octokit.Response<Octokit.ProjectsListForRepoResponse>>;
+  let projects: ReturnType<
+    | Octokit["rest"]["projects"]["listForOrg"]
+    | Octokit["rest"]["projects"]["listForUser"]
+    | Octokit["rest"]["projects"]["listForRepo"]
+  >;
   if (type === "orgs") {
-    projects = octokit.projects.listForOrg({ org: name });
+    projects = octokit.rest.projects.listForOrg({ org: name });
   } else if (type === "users") {
-    projects = octokit.projects.listForUser({ username: name });
+    projects = octokit.rest.projects.listForUser({ username: name });
   } else {
-    projects = octokit.projects.listForRepo({ owner: type, repo: name });
+    projects = octokit.rest.projects.listForRepo({ owner: type, repo: name });
   }
 
   const project = (await projects).data.find((project) =>
@@ -64,7 +73,7 @@ async function run(): Promise<void> {
 
     // Get the Pull Request (or Issue)
     const { owner, repo, number } = github.context.issue;
-    const pull = await octokit.issues.get({
+    const pull = await octokit.rest.issues.get({
       owner,
       repo,
       issue_number: number,
@@ -81,7 +90,7 @@ async function run(): Promise<void> {
 
     // Move the card
     console.log(`Moving card (ID: ${cardId}) to column (ID: ${columnId})`);
-    octokit.projects.moveCard({
+    octokit.rest.projects.moveCard({
       card_id: cardId,
       column_id: columnId,
       position: "top",
