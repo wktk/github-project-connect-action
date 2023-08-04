@@ -7,7 +7,7 @@ const octokit: github.GitHub = new github.GitHub(token);
 
 function findIssueReference(text: string): number | undefined {
   const match = text.match(
-    /(?:[Cc]onnects?(?:\sto)?|[Cc]lose[sd]?|[Ff]ixe?[sd]?|[Rr]esolve[sd]?)\s+#(\d+)/
+    /(?:[Cc]onnects?(?:\sto)?|[Cc]lose[sd]?|[Ff]ixe?[sd]?|[Rr]esolve[sd]?)\s+#(\d+)/,
   );
   if (match) return Number(match[1]);
 }
@@ -16,7 +16,7 @@ async function findCard(
   project: number,
   owner: string,
   repo: string,
-  issue: number
+  issue: number,
 ): Promise<number | undefined> {
   const columns = await octokit.projects.listColumns({ project_id: project });
   for (const column of columns.data) {
@@ -43,7 +43,7 @@ async function parseProjectURL(input: string): Promise<[number, number]> {
   }
 
   const project = (await projects).data.find((project) =>
-    project.html_url.endsWith(url.pathname)
+    project.html_url.endsWith(url.pathname),
   );
   const column = url.hash.match(/#column-(\d+)/);
   if (!project || !column) throw "Invalid column URL";
@@ -87,7 +87,13 @@ async function run(): Promise<void> {
       position: "top",
     });
   } catch (error) {
-    core.setFailed(error.message);
+    if (typeof error === "string") {
+      core.setFailed(error);
+    } else if (error instanceof Error) {
+      core.setFailed(error.message);
+    } else {
+      core.setFailed("Unknown error occurred");
+    }
   }
 }
 
