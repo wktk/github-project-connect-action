@@ -87,7 +87,13 @@ async function run(): Promise<void> {
       position: "top",
     });
   } catch (error) {
-    core.setFailed(error.message);
+    if (typeof error === "string") {
+      core.setFailed(error);
+    } else if (error instanceof Error) {
+      core.setFailed(error.message);
+    } else {
+      core.setFailed("Unknown error occurred");
+    }
   }
 }
 
