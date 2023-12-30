@@ -14,7 +14,7 @@ inputs:
   to-column:
     description: 'Deprecated.  Please use column-id instead.'
 runs:
-  using: 'node16'
+  using: 'node20'
   main: 'dist/index.js'
 branding:
   icon: credit-card
