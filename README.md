@@ -1,3 +1,6 @@
+> [!WARNING]
+> ⚠️ This repository is archived as GitHub Project (classic) has been sunset ([Sunset Notice - Projects (classic) - GitHub Changelog](https://github.blog/changelog/2024-05-23-sunset-notice-projects-classic/)).
+
 # GitHub Project Connect Action
 
 Connect Pull Request statuses to Issues on GitHub Project (classic) boards.
